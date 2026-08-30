@@ -1,2 +1,67 @@
 # easy-ffmpeg
-ffmpeg CLI wrapper - carbon-lang experimental project
+
+`easy-ffmpeg` wraps the common cases with typed subcommands, smart defaults, and built-in presets — no RTFM required.
+
+## Quick Example
+
+```sh
+$ easy-ffmpeg compress video.mp4 output.mp4 --web
+ffmpeg -y -i video.mp4 -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k -movflags +faststart output.mp4
+exit code=0
+
+$ easy-ffmpeg convert old.mkv new.mp4          # smart remux (h264+aac → -c copy)
+$ easy-ffmpeg resize photo.mp4 scaled.mp4 --scale hd
+$ easy-ffmpeg trim clip.mp4 out.mp4 --start 00:01:00 --duration 30
+$ easy-ffmpeg audio-extract movie.mp4 sound.mp3
+$ easy-ffmpeg probe movie.mp4 --json
+```
+
+## Commands
+
+| Command | What | Example |
+|---------|------|---------|
+| `convert` | Format conversion + **smart remux** | `convert in.mkv out.mp4 --codec h264` |
+| `compress` | Encode with quality presets | `compress in.mp4 out.mp4 --web` |
+| `trim` | Cut a segment | `trim in.mp4 out.mp4 --start 00:01:00 --duration 30` |
+| `resize` | Scale dimensions | `resize in.mp4 out.mp4 --scale hd` |
+| `audio-extract` | Strip video, keep audio | `audio-extract in.mp4 out.mp3` |
+| `probe` | Inspect media metadata | `probe in.mp4 --json` |
+
+Every command supports `--dry-run` — prints the exact ffmpeg command without executing.
+
+### Presets (`compress`)
+
+| Flag | Video | CRF | Audio | Extras |
+|------|-------|-----|-------|--------|
+| `--web` | H.264 | 23 | AAC 128k | faststart |
+| `--mobile` | H.264 | 26 | AAC 96k | scale 720p |
+| `--streaming` | H.265 | 18 | AAC 256k | — |
+| `--compress` | H.265 | 28 | AAC 128k | small file |
+
+### Scale presets (`resize`)
+
+`--scale icon` (240p) · `--scale retro` (480p) · `--scale hd` (720p) · `--scale fullhd` (1080p) · `--scale 2k` (1440p)
+
+### Smart remux
+
+When `convert` sees h264+aac input going to mp4, it skips re-encoding entirely:
+
+```sh
+$ easy-ffmpeg convert h264_aac.mkv output.mp4 --dry-run
+ffmpeg -y -i h264_aac.mkv -c:v copy -c:a copy output.mp4   # instant, zero quality loss
+```
+
+## Build
+
+```sh
+./build              # build only
+./build --once       # build + 53 tests
+./build --ci         # format + lint + build + smoke
+./build --check      # validation only
+./build --clean      # remove artifacts
+```
+
+Requirements: `ffmpeg >= 6`, `ffprobe`, `libgcc-11-dev`.
+
+## License
+See [MIT-LICENSE](LICENSE) - FFmpeg is an external dependency.

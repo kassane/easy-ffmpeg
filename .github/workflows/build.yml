@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux x86_64
+            carbon_archive: carbon_toolchain-0.0.0-0.nightly.2026.08.29.tar.gz
+            carbon_dir: carbon_toolchain-0.0.0-0.nightly.2026.08.29
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@main
+
+      - name: Cache carbon toolchain
+        id: cache-carbon
+        uses: actions/cache@main
+        with:
+          path: ${{ matrix.carbon_dir }}
+          key: carbon-${{ matrix.carbon_archive }}-v1
+
+      - name: Download carbon toolchain
+        if: steps.cache-carbon.outputs.cache-hit != 'true'
+        env:
+          CARBON_ARCHIVE: ${{ matrix.carbon_archive }}
+          CARBON_DIR: ${{ matrix.carbon_dir }}
+        run: |
+          curl -fsSL -O "https://github.com/carbon-language/carbon-lang/releases/download/v0.0.0-0.nightly.2026.08.29/${CARBON_ARCHIVE}"
+          if [[ "${CARBON_ARCHIVE}" == *.zip ]]; then unzip -q "${CARBON_ARCHIVE}"; else tar -xf "${CARBON_ARCHIVE}"; fi
+
+      - name: Add carbon to PATH
+        env:
+          CARBON_DIR: ${{ matrix.carbon_dir }}
+        run: echo "$PWD/${CARBON_DIR}/bin" >> "$GITHUB_PATH"
+
+      - name: prepare-linux
+        if: runner.os == 'Linux'
+        run: |
+            sudo apt-get update
+            sudo apt-get install ffmpeg
+      
+      - name: Build application
+        run: |
+          carbon build src/main.carbon \
+            src/core/*.carbon src/cli/*.carbon \
+            --output=easy-ffmpeg \
+            -- -std=c++17 -Isrc/core
+      
+      - name: Testing
+        run: |
+          bash tests/test_dry_run.sh 2>&1
+          bash tests/test_exit_codes.sh 2>&1
+          bash tests/smoke.sh 2>&1
