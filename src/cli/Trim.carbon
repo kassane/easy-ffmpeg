@@ -45,19 +45,19 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
   let sseof: Cpp.std.string = Cpp.cli.get_flag_value("--sseof");
-  if (sseof != "") { ArgsBuilder.Add(Cpp.strh.make("-sseof")); ArgsBuilder.Add(sseof); }
+  if (Cpp.str_ne(sseof, "")) { ArgsBuilder.AddFlagValue(Constants.FlagSseof(), sseof); }
   let start: Cpp.std.string = Cpp.cli.get_flag_value("--start");
-  if (start != "") { ArgsBuilder.Add(Constants.FlagStart()); ArgsBuilder.Add(start); }
+  if (Cpp.str_ne(start, "")) { ArgsBuilder.AddFlagValue(Constants.FlagStart(), start); }
   let duration: Cpp.std.string = Cpp.cli.get_flag_value("--duration");
   let end: Cpp.std.string = Cpp.cli.get_flag_value("--end");
-  if (duration != "") { ArgsBuilder.Add(Constants.FlagDuration()); ArgsBuilder.Add(duration); }
-  else if (end != "") { ArgsBuilder.Add(Constants.FlagTo()); ArgsBuilder.Add(end); }
+  if (Cpp.str_ne(duration, "")) { ArgsBuilder.AddFlagValue(Constants.FlagDuration(), duration); }
+  else if (Cpp.str_ne(end, "")) { ArgsBuilder.AddFlagValue(Constants.FlagTo(), end); }
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.cli.has_flag("--copy") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
   }
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -67,5 +67,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

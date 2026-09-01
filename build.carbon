@@ -1,5 +1,5 @@
 // build.carbon — single build entry point.
-// Build: carbon build build.carbon src/core/ArgsBuilder.carbon --output=build -- -std=c++17 -Isrc/core
+// Build: carbon build build.carbon src/core/ArgsBuilder.carbon --output=build -- -std=c++23 -Isrc/core
 // Usage: ./build [--once|--ci|--clean|--format|--check|--help|--version|-v]
 import ArgsBuilder library "core/args";
 import Core library "io";
@@ -27,7 +27,7 @@ fn Run() {
   Cpp.cli.capture();
   if (Cpp.cli.has_help() == 1 or Cpp.cli.has_flag("--version") == 1) {
     if (Cpp.cli.has_help() == 1) { ShowHelp(); }
-    if (Cpp.cli.has_flag("--version") == 1) { Core.PrintStr("easy-ffmpeg build 0.2.0\n"); }
+    if (Cpp.cli.has_flag("--version") == 1) { Core.PrintStr("easy-ffmpeg build 0.2.1\n"); }
     Cpp.cli_exit(0);
     return;
   }
@@ -96,7 +96,7 @@ fn Run() {
     ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
     ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
     ArgsBuilder.Add(Cpp.strh.make("--"));
-    ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+    ArgsBuilder.Add(Cpp.strh.make("-std=c++23"));
     ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
     if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
     if (ArgsBuilder.RunShell() != 0) {
@@ -118,7 +118,7 @@ fn Run() {
     ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
     ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
     ArgsBuilder.Add(Cpp.strh.make("--"));
-    ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+    ArgsBuilder.Add(Cpp.strh.make("-std=c++23"));
     ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
     if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
     if (ArgsBuilder.RunShell() != 0) {
@@ -157,7 +157,7 @@ fn Run() {
   ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
   ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
   ArgsBuilder.Add(Cpp.strh.make("--"));
-  ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+  ArgsBuilder.Add(Cpp.strh.make("-std=c++23"));
   ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
   if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
   let rc: i32 = ArgsBuilder.RunShell();

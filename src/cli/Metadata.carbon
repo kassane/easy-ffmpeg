@@ -41,7 +41,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -55,10 +55,10 @@ fn Run() -> i32 {
   } else {
     let title: Cpp.std.string = Cpp.cli.get_flag_value("--title");
     let artist: Cpp.std.string = Cpp.cli.get_flag_value("--artist");
-    if (title != "") {
+    if (Cpp.str_ne(title, "")) {
       ArgsBuilder.AddFlagValue(Constants.FlagMetadataTitle(), Cpp.strh.concat3("title=", title, ""));
     }
-    if (artist != "") {
+    if (Cpp.str_ne(artist, "")) {
       ArgsBuilder.AddFlagValue(Constants.FlagMetadataTitle(), Cpp.strh.concat3("artist=", artist, ""));
     }
   }

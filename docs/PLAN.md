@@ -4,8 +4,8 @@
 
 ## Reality Check (why wrapper, not libav* SDK)
 
-* **Carbon 0.1 nightly** (`0.0.0-0.nightly.2026.08.29+f519ccc`) can `import Cpp library "<cstdio>"` and call `Cpp.putchar`. `process::run_str()` works via a `std::string` bridge (fork+execvp, no shell). Custom headers (`import Cpp library "ffi_helper.hpp"`) compile/link when the include dir is passed via `carbon build ... -- -std=c++17 -I<dir>`. It **cannot** yet reliably import full `libavcodec/avcodec.h` template-heavy headers, nor does it expose `String` formatting or heap `Vector<String>`. Checked via `lib/carbon/core` (only `io.carbon`, `prelude/*`).
-* **CRASH BUG**: cross-package references to package-level `let` constants trigger a CHECK failure in lowering (`const_id.is_concrete()`). Workaround: use FUNCTIONS instead of `let` constants in `Constants.carbon`. See `docs/TODO.md` and `.swival/memory/cpp_compiler_crash.md`.
+* **Carbon 0.1 nightly** (`0.0.0-0.nightly.2026.08.29+f519ccc`) can `import Cpp library "<cstdio>"` and call `Cpp.putchar`. `process::run_str()` works via a `std::string` bridge (fork+execvp, no shell). Custom headers (`import Cpp library "ffi_helper.hpp"`) compile/link when the include dir is passed via `carbon build ... -- -std=c++23 -I<dir>`. It **cannot** yet reliably import full `libavcodec/avcodec.h` template-heavy headers, nor does it expose `String` formatting or heap `Vector<String>`. Checked via `lib/carbon/core` (only `io.carbon`, `prelude/*`).
+* **CRASH BUG**: cross-package references to package-level `let` constants trigger a CHECK failure in lowering (`const_id.is_concrete()`). Workaround: use FUNCTIONS instead of `let` constants in `Constants.carbon`. See `docs/CARBON_TOOLCHAIN.md` for details.
 * FFmpeg project itself recommends CLI for 90% use-cases; `libav*` (`avcodec_send_packet`/`avcodec_receive_frame`) is for custom players/transcoders. Wrapper satisfies “easier CLI” with 1/10th the Carbon complexity.
 * Therefore **Phase 1–3 = Argv-builder + exec**, Phase 5 (optional) = migrate to `libav*` interop when Carbon 0.2 ships.
 
@@ -16,7 +16,6 @@
 - [x] `CARBON=$PWD/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon` in `scripts/env.sh`
 - [x] `src/main.carbon` minimal `fn Run() { Core.Print(0); }` builds with `carbon build --output=easy-ffmpeg`
 - [x] `carbon format` passes, `scripts/loop-build.sh` watches `src/**/*.carbon`
-- [x] `docs/TODO.md` initialized, `scripts/update-todo.sh` wired to pre-commit hook
 
 Exit: `carbon build` green on clean tree.
 
@@ -101,14 +100,12 @@ Exit: `scripts/loop-build.sh` runs `carbon build` + `sh tests/smoke.sh` (probes 
 
 ## Phase 4 — DX & Docs (Day 4)
 
-- `README.md` quickstart, `docs/ARCHITECTURE.md` diagram, `docs/CARBON_TOOLCHAIN.md` (from `carbon --help`), `docs/RULES.md`, `docs/TODO.md` auto-updated.
+- `README.md` quickstart, `docs/ARCHITECTURE.md` diagram, `docs/CARBON_TOOLCHAIN.md` (from `carbon --help`), `docs/RULES.md`.
 - Shell completions generated from `Constants.Cmd*` (single source).
-- CI: `carbon format --check`, `carbon build --optimize=debug`, `scripts/update-todo.sh --check`
 
-- [x] `docs/ARCHITECTURE.md`, `docs/CARBON_TOOLCHAIN.md`, `docs/RULES.md`, `docs/TODO.md` current
+- [x] `docs/ARCHITECTURE.md`, `docs/CARBON_TOOLCHAIN.md`, `docs/RULES.md`
 - [x] Shell completions generated from `Constants.Cmd*`
 - [x] `./build --ci` wraps format + no-magic + build + smoke
-- [x] `scripts/update-todo.sh --check` wired to CI
 
 Exit: fresh clone builds and passes smoke tests.
 
@@ -172,13 +169,8 @@ done
 
 ## Auto-Update Todolist
 
-`scripts/update-todo.sh`:
 1. parses `docs/PLAN.md` checkboxes,
 2. counts `src/**/*.carbon` vs plan phases,
-3. rewrites `docs/TODO.md` header `Last updated: $(date -u +%Y-%m-%dT%H:%M:%SZ)`,
-4. fails CI if `git diff --exit-code docs/TODO.md`.
-
-See `docs/TODO.md` for live list.
 
 ## Risks
 

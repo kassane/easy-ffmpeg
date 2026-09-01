@@ -66,7 +66,7 @@ ffmpeg -y -i h264_aac.mkv -c:v copy -c:a copy output.mp4   # instant, zero quali
 
 ```sh
 ./build              # build only
-./build --once       # build + 53 tests
+./build --once       # build + all tests
 ./build --ci         # format + lint + build + smoke
 ./build --check      # validation only
 ./build --clean      # remove artifacts

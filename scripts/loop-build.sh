@@ -19,7 +19,7 @@ build_once() {
   SRC="$(collect_src)"
   # -Isrc/core is required: custom headers (ffi_helper.hpp) are referenced via
   # `import Cpp library "ffi_helper.hpp"` and must be found at compile time.
-  "$CARBON" build $SRC --output="$OUT" -- -std=c++17 -Isrc/core
+  "$CARBON" build $SRC --output="$OUT" -- -std=c++23 -Isrc/core
   # Phase 0: just verify binary runs (exit 0). Phase 2+ adds --help grep + smoke.
   "$OUT" >/dev/null 2>&1
   echo "[green] $(date -u +%FT%TZ)"

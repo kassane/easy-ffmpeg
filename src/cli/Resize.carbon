@@ -52,7 +52,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -60,7 +60,7 @@ fn Run() -> i32 {
   let scale: Cpp.std.string = Cpp.cli.get_flag_value("--scale");
   let w: Cpp.std.string = Cpp.cli.get_flag_value("--width");
   let h: Cpp.std.string = Cpp.cli.get_flag_value("--height");
-  if (scale == "tiktok") {
+  if (Cpp.str_eq(scale, "tiktok")) {
     let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), "");
     ArgsBuilder.Clear();
     ArgsBuilder.Add(Constants.FfmpegBin());
@@ -68,7 +68,7 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
     ArgsBuilder.Add(output);
-  } else if (scale == "instagram") {
+  } else if (Cpp.str_eq(scale, "instagram")) {
     let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), "");
     ArgsBuilder.Clear();
     ArgsBuilder.Add(Constants.FfmpegBin());
@@ -76,7 +76,7 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
     ArgsBuilder.Add(output);
-  } else if (scale == "youtube") {
+  } else if (Cpp.str_eq(scale, "youtube")) {
     let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), "");
     ArgsBuilder.Clear();
     ArgsBuilder.Add(Constants.FfmpegBin());
@@ -84,9 +84,9 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
     ArgsBuilder.Add(output);
-  } else if (scale != "") {
+  } else if (Cpp.str_ne(scale, "")) {
     let h_str: Cpp.std.string = Cpp.scale_height(scale);
-    if (h_str == "0") {
+    if (Cpp.str_eq(h_str, "0")) {
       Core.PrintStr(Cpp.color.red("error: unknown scale preset"));
       Core.PrintStr("\n");
       return Constants.ExitFailure();
@@ -98,8 +98,8 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
     ArgsBuilder.Add(output);
-  } else if (w != "") {
-    if (h == "") {
+  } else if (Cpp.str_ne(w, "")) {
+    if (Cpp.str_eq(h, "")) {
       Core.PrintStr(Cpp.color.red("error: --height required with --width"));
       Core.PrintStr("\n");
       return Constants.ExitFailure();
@@ -121,5 +121,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

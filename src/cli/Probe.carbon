@@ -38,11 +38,9 @@ fn Run() -> i32 {
   }
   ArgsBuilder.Clear();
   ArgsBuilder.Add(Constants.FfprobeBin());
-  ArgsBuilder.Add(Constants.FlagVerbosity());
-  ArgsBuilder.Add(Constants.QuietValue());
+  ArgsBuilder.AddFlagValue(Constants.FlagVerbosity(), Constants.QuietValue());
   if (Cpp.cli.has_flag("--json") == 1) {
-    ArgsBuilder.Add(Constants.FlagPrintFormat());
-    ArgsBuilder.Add(Constants.JsonValue());
+    ArgsBuilder.AddFlagValue(Constants.FlagPrintFormat(), Constants.JsonValue());
   }
   ArgsBuilder.Add(Constants.FlagShowStreams());
   ArgsBuilder.Add(input);

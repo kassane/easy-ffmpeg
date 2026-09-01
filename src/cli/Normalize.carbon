@@ -41,7 +41,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -51,8 +51,7 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  ArgsBuilder.Add(Cpp.strh.make("-af"));
-  ArgsBuilder.Add(filter);
+  ArgsBuilder.AddFlagValue(Constants.FlagAudioFilter(), filter);
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }

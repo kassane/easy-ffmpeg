@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.1] - 2026-09-01
+
+### Fixed
+
+- **Exit code propagation**: Trim, Resize, AudioExtract, Convert now return
+  ffmpeg's actual exit code instead of always reporting success.
+- **argv_run_exec string round-trip**: tokens now pass directly to fork+execvp
+  without string serialization, preventing corruption of paths with spaces.
+- **Constant consolidation**: removed duplicates (CodecCopy/FlagCodecCopy,
+  CodecNameH264/CodecH264, CodecNameAac/CodecAac), fixed typo FlagSsseof.
+
+### Security
+
+- Added 50 TDD security tests: path traversal, injection characters,
+  device files, missing args, valid inputs, help flags.
+- `FlagMap()` now used (was defined but unused, 8 hardcoded replacements).
+- Added constants for `-af`, `-vframes`, `-safe` flags.
+
+### Changed
+
+- Upgraded build from C++17 to C++23.
+- `std::format` replaces `snprintf` in `atempo_chain`.
+- `std::from_chars` replaces `std::stol`/`std::stod` (zero-exception parsing).
+- `std::ifstream` replaces `fopen`/`fgets`/`fclose` in `read_carbon_src`.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added
@@ -24,7 +49,7 @@
   via `ArgsBuilder.RunExec()`, no `system()` in Carbon code paths.
 - Path traversal blocked: `validate_path()` rejects `..`, `'`, `\n`, `\r`, `\0`,
   non-regular files.
-- Concat list filenames escaped (`'` → `'\''`).
+- Concat list filenames escaped (`'` -> `'\''`).
 - Subtitle SRT paths escaped for ffmpeg filter syntax.
 - Drawtext text escaped for `; % [ ]` in addition to `: ' \`.
 - Double-quoted args escaped in shell command builder.
@@ -38,7 +63,7 @@
   - `string::reserve()` in hot builders.
   - `constexpr validate_numeric()`.
 - Build checks (`check_no_magic`, `check_no_duplication`) are pure C++17
- , no more `popen("grep ...")`.
+  no more `popen("grep ...")`.
 - `Constants.carbon` reorganized with section headers.
 - Removed unused `<algorithm>` include from `ffi_helper.hpp`.
 - Removed 20 unused Carbon imports across 20 files.
@@ -47,7 +72,7 @@
 
 ### Fixed
 
-- `Compress.carbon` magic literal `"-b:v"` → `Constants.FlagVideoBitrate()`.
+- `Compress.carbon` magic literal `"-b:v"` -> `Constants.FlagVideoBitrate()`.
 - `build.carbon` `--once` argument order (`--dry-run` after subcommand).
 - Progress bar test pattern matching for `[###] 100%` output.
 - Probe exit code propagation from ffprobe.

@@ -41,7 +41,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -53,7 +53,7 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  if (image != "") {
+  if (Cpp.str_ne(image, "")) {
     let img_err: i32 = Validate.ValidatePath(image);
     if (img_err == 1) {
       Core.PrintStr(Cpp.color.red("error: image path traversal not allowed"));
@@ -70,11 +70,9 @@ fn Run() -> i32 {
     let overlay: Cpp.std.string = Cpp.build_watermark_filter(position);
     let filter_complex: Cpp.std.string = Cpp.strh.concat3("[0:v][1:v]", overlay, "[out]");
     ArgsBuilder.AddFlagValue(Constants.FlagFilterComplex(), filter_complex);
-    ArgsBuilder.Add(Cpp.strh.make("-map"));
-    ArgsBuilder.Add(Cpp.strh.make("[out]"));
-    ArgsBuilder.Add(Cpp.strh.make("-map"));
-    ArgsBuilder.Add(Cpp.strh.make("0:a?"));
-  } else if (text != "") {
+    ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("[out]"));
+    ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("0:a?"));
+  } else if (Cpp.str_ne(text, "")) {
     let safe_text: Cpp.std.string = Cpp.escape_drawtext(text);
     let filter: Cpp.std.string = Cpp.strh.concat3("drawtext=text=", safe_text, ":fontsize=24:fontcolor=white:x=10:y=10");
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);

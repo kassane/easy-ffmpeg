@@ -38,13 +38,13 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
   let srt: Cpp.std.string = Cpp.cli.get_flag_value("--file");
-  if (srt == "") {
+  if (Cpp.str_eq(srt, "")) {
     Core.PrintStr(Cpp.color.red("error: --file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();

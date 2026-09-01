@@ -42,17 +42,17 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   let codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
-  if (codec != "") {
+  if (Cpp.str_ne(codec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), codec);
   } else {
     let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
     let codecs: Cpp.std.string = Cpp.probe_codecs(ffprobe, input);
     let sep: u64 = codecs.find(",");
-    if (sep != 18446744073709551615) {
+    if (sep != Constants.NotFoundIndex()) {
       let vcodec: Cpp.std.string = codecs.substr(0, sep);
       let acodec: Cpp.std.string = codecs.substr(sep + 1);
-      let v_codec_h: Cpp.std.string = Cpp.strh.make(Constants.CodecNameH264());
-      let aac: Cpp.std.string = Cpp.strh.make(Constants.CodecNameAac());
+      let v_codec_h: Cpp.std.string = Cpp.strh.make(Constants.CodecH264());
+      let aac: Cpp.std.string = Cpp.strh.make(Constants.CodecAac());
       if (vcodec == v_codec_h) {
         if (acodec == aac) {
           ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
@@ -61,7 +61,7 @@ fn Run() -> i32 {
       }
     }
   }
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -71,5 +71,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

@@ -3,7 +3,7 @@
 package Constants library "core/constants";
 
 // ── Version ────────────────────────────────────────────────────────────────
-fn Version() -> Core.String { return "0.2.0"; }
+fn Version() -> Core.String { return "0.2.1"; }
 
 // ── Exit codes ─────────────────────────────────────────────────────────────
 fn ExitSuccess() -> i32 { return 0; }
@@ -11,6 +11,7 @@ fn ExitFailure() -> i32 { return 1; }
 fn ExitUsage() -> i32 { return 2; }
 fn ExitCodecNotAllowed() -> i32 { return 2; }
 fn ExitFileNotFound() -> i32 { return 3; }
+fn NotFoundIndex() -> u64 { return 18446744073709551615; }
 fn ExitSecurity() -> i32 { return 4; }
 
 // ── Binaries ───────────────────────────────────────────────────────────────
@@ -23,15 +24,11 @@ fn CodecAac() -> Core.String { return "aac"; }
 fn CodecMp3() -> Core.String { return "mp3"; }
 fn CodecVp9() -> Core.String { return "vp9"; }
 fn CodecAv1() -> Core.String { return "av1"; }
-fn CodecCopy() -> Core.String { return "copy"; }
 fn CodecLibx264() -> Core.String { return "libx264"; }
 fn CodecLibx265() -> Core.String { return "libx265"; }
 fn CodecLibmp3lame() -> Core.String { return "libmp3lame"; }
 fn FlagCodecCopy() -> Core.String { return "copy"; }
 
-// ── Codec detection (from ffprobe output) ──────────────────────────────────
-fn CodecNameH264() -> Core.String { return "h264"; }
-fn CodecNameAac() -> Core.String { return "aac"; }
 
 // ── Default format ─────────────────────────────────────────────────────────
 fn DefaultFormat() -> Core.String { return "mp4"; }
@@ -45,10 +42,13 @@ fn FlagQscale() -> Core.String { return "-qscale:v"; }
 fn FlagStart() -> Core.String { return "-ss"; }
 fn FlagTo() -> Core.String { return "-to"; }
 fn FlagDuration() -> Core.String { return "-t"; }
-fn FlagSsseof() -> Core.String { return "-sseof"; }
+fn FlagSseof() -> Core.String { return "-sseof"; }
 fn FlagFilter() -> Core.String { return "-vf"; }
 fn FlagFilterComplex() -> Core.String { return "-filter_complex"; }
 fn FlagMap() -> Core.String { return "-map"; }
+fn FlagAudioFilter() -> Core.String { return "-af"; }
+fn FlagVframes() -> Core.String { return "-vframes"; }
+fn FlagSafe() -> Core.String { return "-safe"; }
 fn FlagAnnotate() -> Core.String { return "-an"; }
 fn FlagVn() -> Core.String { return "-vn"; }
 fn FlagOverwrite() -> Core.String { return "-y"; }
@@ -89,6 +89,9 @@ fn MaxArgs() -> i32 { return 64; }
 fn DefaultCrf() -> Core.String { return "23"; }
 fn DefaultPreset() -> Core.String { return "fast"; }
 fn DefaultAudioBitrate() -> Core.String { return "128k"; }
+fn DefaultGifFps() -> i32 { return 15; }
+fn DefaultGifWidth() -> i32 { return 480; }
+fn DefaultThumbnailTime() -> Core.String { return "00:00:05"; }
 
 // ── Compress presets ───────────────────────────────────────────────────────
 fn PresetWebCrf() -> Core.String { return "23"; }
@@ -135,4 +138,6 @@ fn CmdWatermark() -> Core.String { return "watermark"; }
 fn CmdSubtitle() -> Core.String { return "subtitle"; }
 fn CmdMetadata() -> Core.String { return "metadata"; }
 fn CmdNormalize() -> Core.String { return "normalize"; }
+fn SafeZero() -> Core.String { return "0"; }
+fn VframesOne() -> Core.String { return "1"; }
 fn CmdReplaceAudio() -> Core.String { return "replace-audio"; }

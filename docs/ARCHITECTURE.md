@@ -54,7 +54,7 @@
 1. `main` → `CliTrim.Run(argv)` parses `--start`/`--duration` via `Constants.FlagStart`.
 2. `Validate.ParseTime("10") -> 10_000ms`, `Validate.Exists("in.mp4")`.
 3. `let b: Builder = Builder.New(); b.Add(Constants.FlagInput, "in.mp4"); b.Add(Constants.FlagSeek, "10"); b.Add(Constants.FlagDuration, "5"); b.Add(Constants.FlagCodecCopy);`
-4. `if (dryRun) { /* print argv via a future ToString() */ } else { let cmd: Cpp.void* = b.ToSystemCmd(); return Process.Exec(cmd); }`
+4. `if (dryRun) { /* print argv via a future ToString() */ } else { let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd(); return Process.Exec(cmd); }`
 5. Underlying: `ffmpeg -ss 10 -t 5 -i in.mp4 -c copy out.mp4` — verified against `ffmpeg -h full` (seek is input option, `-t` duration, `-c copy` stream copy).
 
 ## Constraints from Toolchain

@@ -57,34 +57,12 @@
   done
   ```
 * **Manual review gate:** `loop-engineering` `onManualReview` → human runs `scripts/loop-build.sh --once` and calls `resolveManualReview`.
-
-## 4. Auto-Update Todolist Per Step
-
-* **Source of truth:** `docs/PLAN.md` checkboxes (Phase 0–5).
-* **Derived:** `docs/TODO.md` is **generated** by `scripts/update-todo.sh` — never hand-edit the table body.
-* **Script:**
-  ```sh
-  # scripts/update-todo.sh
-  # 1. parse docs/PLAN.md for "- [ ]" / "- [x]"
-  # 2. count src/**/*.carbon existence per phase
-  # 3. prepend header "Last updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | Source: docs/PLAN.md"
-  # 4. write docs/TODO.md
-  # 5. if --check: git diff --exit-code docs/TODO.md || (echo "run ./scripts/update-todo.sh" && exit 1)
-  ```
-* **Hooks:**
-  - `post-commit` + `post-merge` → `scripts/update-todo.sh`
-  - `pre-commit` → `scripts/update-todo.sh --check` (fails if stale)
-  - CI → same check.
-* **OpenCode todo list** (in-chat `todowrite`) mirrors `docs/TODO.md` at session start; agent must `todowrite` after each phase completion before `oracle` gate (per `deepwork/SKILL.md`).
-
-## 5. Skill References Applied
+## 4. Skill References Applied
 
 | Skill | How it shapes this repo |
 |-------|------------------------|
-| `deepwork` | `.slim/deepwork/easy-ffmpeg.md` tracks phased delivery, oracle gates after Phase 1/2/3/4, commits per phase. |
-| `verification-planning` | `docs/VERIFICATION.md` — claim → evidence path per phase; no completion claim without `scripts/loop-build.sh --once` fresh run. |
 | `loop-engineering` | `scripts/loop-build.sh` Grill contract, Monitor callbacks. |
-| `systematic-debugging` | `docs/DEBUGGING.md` — fault injection via `Validate`, host-first BDD scenarios. |
+
 | `security-audit` | `docs/SECURITY.md` — fork+execvp (no shell), allow-list validation. |
 | `simplify` / `codemap` | `ARCHITECTURE.md` single builder, `codemap.md` per folder after init. |
 
@@ -93,5 +71,16 @@
 - [ ] `carbon format src/**/*.carbon` clean
 - [ ] `./build --check` clean (C++ native)
 - [ ] `./build --ci` passes
-- [ ] `scripts/update-todo.sh --check` clean
 - [ ] `./build --once` green (evidence attached in PR description)
+
+## 5. Build via build.carbon Only
+
+* **Never run `carbon build` directly.** Always use `./build --output=easy-ffmpeg`.
+* `build.carbon` applies `-std=c++23`, `-Isrc/core`, link flags, and the ArgsBuilder dependency chain. Direct `carbon build` skips all of that.
+* CI gate: `./build --output=easy-ffmpeg` must succeed before any test runs.
+
+## 6. Attribution
+
+* AI-generated commits must include `Assisted-by: <agent-name>` in the commit trailer.
+* Format: `Assisted-by: <model-name>`.
+* Human-authored commits do not need this tag.

@@ -38,13 +38,13 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
   let audio: Cpp.std.string = Cpp.cli.get_flag_value("--audio");
-  if (audio == "") {
+  if (Cpp.str_eq(audio, "")) {
     Core.PrintStr(Cpp.color.red("error: --audio required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -65,10 +65,8 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), audio);
-  ArgsBuilder.Add(Cpp.strh.make("-map"));
-  ArgsBuilder.Add(Cpp.strh.make("0:v"));
-  ArgsBuilder.Add(Cpp.strh.make("-map"));
-  ArgsBuilder.Add(Cpp.strh.make("1:a"));
+  ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("0:v"));
+  ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("1:a"));
   ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
   ArgsBuilder.Add(Constants.FlagShortest());
   ArgsBuilder.Add(output);

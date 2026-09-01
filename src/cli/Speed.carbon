@@ -39,13 +39,13 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
   let factor: Cpp.std.string = Cpp.cli.get_flag_value("--factor");
-  if (factor == "") {
+  if (Cpp.str_eq(factor, "")) {
     Core.PrintStr(Cpp.color.red("error: --factor required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -61,10 +61,8 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagFilterComplex(), filter_complex);
-  ArgsBuilder.Add(Cpp.strh.make("-map"));
-  ArgsBuilder.Add(Cpp.strh.make("[v]"));
-  ArgsBuilder.Add(Cpp.strh.make("-map"));
-  ArgsBuilder.Add(Cpp.strh.make("[a]"));
+  ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("[v]"));
+  ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("[a]"));
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }

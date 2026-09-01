@@ -453,6 +453,11 @@ inline std::string concat3(std::string_view a, std::string_view b,
 }
 } // namespace strh
 
+// === String comparison helpers (Carbon nightly can't lower operator== for std::string) ===
+inline bool str_eq(std::string_view a, std::string_view b) { return a == b; }
+inline bool str_ne(std::string_view a, std::string_view b) { return a != b; }
+inline std::string i_to_str(int i) { return std::to_string(i); }
+
 // === Escape text for ffmpeg drawtext filter ===
 inline std::string escape_drawtext(std::string_view text) {
   std::string result;
@@ -579,7 +584,7 @@ template <typename Container>
 
 // Execute accumulated tokens via shell (C++ FFI — uses g_tokens vector
 // directly)
-inline int argv_run_shell() {
+[[nodiscard]] inline int argv_run_shell() {
   if (g_tokens.empty())
     return -1;
   return run_shell(g_tokens[0], std::vector<std::string>(g_tokens.begin() + 1,
@@ -587,7 +592,7 @@ inline int argv_run_shell() {
 }
 
 // Execute accumulated tokens via fork+execvp (no shell, no glob)
-inline int argv_run_exec() {
+[[nodiscard]] inline int argv_run_exec() {
   if (g_tokens.empty())
     return -1;
   return process::run_str(argv_build_cmd());
@@ -724,7 +729,7 @@ inline int argv_run_exec() {
 }
 
 // === String-to-int conversion (Carbon has no stoi) ===
-[[nodiscard]] inline int stoi(std::string s) {
+[[nodiscard]] inline int stoi(std::string s) noexcept {
 #if __has_include(<charconv>)
   int val = 0;
   auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
@@ -788,7 +793,7 @@ inline std::string build_concat_list(const std::vector<std::string> &files) {
   };
   std::string list;
   list.reserve(files.size() * 30);
-  for (auto &f : files) {
+  for (const auto &f : files) {
     list += "file '" + esc(f) + "'\n";
   }
   return list;
@@ -885,7 +890,7 @@ inline std::string build_speed_filter_complex(std::string_view factor) {
 }
 
 // === Build watermark overlay filter ===
-inline std::string build_watermark_filter(std::string position) {
+inline std::string build_watermark_filter(std::string_view position) {
   if (position == "top-left")
     return "overlay=10:10";
   if (position == "top-right")
@@ -900,7 +905,7 @@ inline std::string build_watermark_filter(std::string position) {
 }
 
 // === Build rotate filter ===
-inline std::string build_rotate_filter(std::string angle) {
+inline std::string build_rotate_filter(std::string_view angle) {
   if (angle == "90")
     return "transpose=1";
   if (angle == "180")
@@ -922,7 +927,7 @@ inline std::string build_thumbnail_filter(int fps) {
 }
 
 // === Build subtitle filter ===
-inline std::string build_subtitle_filter(std::string srt_path) {
+inline std::string build_subtitle_filter(std::string_view srt_path) {
   // Escape ffmpeg filter special chars in path
   std::string safe;
   safe.reserve(srt_path.size() * 2);

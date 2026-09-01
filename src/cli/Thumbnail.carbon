@@ -40,7 +40,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -51,7 +51,7 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  if (every != "") {
+  if (Cpp.str_ne(every, "")) {
     if (Cpp.validate_numeric(every) == 0) {
       Core.PrintStr(Cpp.color.red("error: --every must be a number"));
       Core.PrintStr("\n");
@@ -66,14 +66,12 @@ fn Run() -> i32 {
     let filter: Cpp.std.string = Cpp.build_thumbnail_filter(every_val);
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
   } else {
-    ArgsBuilder.Add(Constants.FlagStart());
-    if (time == "") {
-      ArgsBuilder.Add(Cpp.strh.make("00:00:05"));
+    if (Cpp.str_eq(time, "")) {
+      ArgsBuilder.AddFlagValue(Constants.FlagStart(), Cpp.strh.make(Constants.DefaultThumbnailTime()));
     } else {
-      ArgsBuilder.Add(time);
+      ArgsBuilder.AddFlagValue(Constants.FlagStart(), time);
     }
-    ArgsBuilder.Add(Cpp.strh.make("-vframes"));
-    ArgsBuilder.Add(Cpp.strh.make("1"));
+    ArgsBuilder.AddFlagValue(Constants.FlagVframes(), Cpp.strh.make(Constants.VframesOne()));
   }
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();

@@ -59,10 +59,10 @@ fn Run() -> i32 {
   let crf: Cpp.std.string = Cpp.cli.get_flag_value("--crf");
   let preset: Cpp.std.string = Cpp.cli.get_flag_value("--preset");
   let abr: Cpp.std.string = Cpp.cli.get_flag_value("--bitrate");
-  if (vcodec != "") {
+  if (Cpp.str_ne(vcodec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), vcodec);
-    if (crf != "") { ArgsBuilder.AddFlagValue(Constants.FlagCrf(), crf); }
-    if (preset != "") { ArgsBuilder.AddFlagValue(Constants.FlagPreset(), preset); }
+    if (Cpp.str_ne(crf, "")) { ArgsBuilder.AddFlagValue(Constants.FlagCrf(), crf); }
+    if (Cpp.str_ne(preset, "")) { ArgsBuilder.AddFlagValue(Constants.FlagPreset(), preset); }
   } else if (Cpp.cli.has_flag("--web") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx264());
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetWebCrf());
@@ -81,12 +81,12 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetCompressPreset());
   }
   let acodec: Cpp.std.string = Cpp.cli.get_flag_value("--audio-codec");
-  if (acodec != "") {
+  if (Cpp.str_ne(acodec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), acodec);
   } else {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecAac());
   }
-  if (abr != "") {
+  if (Cpp.str_ne(abr, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), abr);
   } else if (Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetMobileAudioBr());
@@ -96,17 +96,14 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetCompressAudioBr());
   }
   let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
-  if (vbr != "") {
-    ArgsBuilder.Add(Cpp.strh.make(Constants.FlagVideoBitrate()));
-    ArgsBuilder.Add(vbr);
+  if (Cpp.str_ne(vbr, "")) {
+    ArgsBuilder.AddFlagValue(Cpp.strh.make(Constants.FlagVideoBitrate()), vbr);
   }
   if (Cpp.cli.has_flag("--mobile") == 1) {
-    ArgsBuilder.Add(Constants.FlagFilter());
-    ArgsBuilder.Add(Constants.ScaleFilterHd());
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Constants.ScaleFilterHd());
   }
-  ArgsBuilder.Add(Constants.FlagMovflags());
-  ArgsBuilder.Add(Constants.FaststartValue());
-  if (output == "") {
+  ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -116,5 +113,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

@@ -40,7 +40,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -51,16 +51,16 @@ fn Run() -> i32 {
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  if (angle != "") {
-    if (angle != "90" and angle != "180" and angle != "270") {
+  if (Cpp.str_ne(angle, "")) {
+    if (Cpp.str_ne(angle, "90") and Cpp.str_ne(angle, "180") and Cpp.str_ne(angle, "270")) {
       Core.PrintStr(Cpp.color.red("error: --angle must be 90, 180, or 270"));
       Core.PrintStr("\n");
       return Constants.ExitFailure();
     }
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.build_rotate_filter(angle));
-  } else if (flip == "h") {
+  } else if (Cpp.str_eq(flip, "h")) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.strh.make("hflip"));
-  } else if (flip == "v") {
+  } else if (Cpp.str_eq(flip, "v")) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.strh.make("vflip"));
   } else {
     Core.PrintStr(Cpp.color.red("error: --angle or --flip required"));

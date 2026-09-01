@@ -34,7 +34,6 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 
 - **No duplication**: one builder, one exec, one validator. All `"-c:v"`/`"h264"`/**codecs** flow through `Constants.carbon` → `ArgsBuilder` methods.
 - **Looping toolcall**: `scripts/loop-build.sh` (watch mode) or `--once` for one green check. Manual-review gate per `loop-engineering`.
-- **Auto-update todo**: `docs/TODO.md` is GENERATED from `docs/PLAN.md` by `scripts/update-todo.sh`. Never hand-edit its table. `--check` gate in CI.
 - **Verification**: no completion claim without a fresh `scripts/loop-build.sh --once` in the same message (per `verification-planning`). `--dry-run` prints the exact `ffmpeg ...` argv without forking.
 
 ## Verification commands
@@ -47,4 +46,24 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 
 ## Subcommand → ffmpeg mapping source of truth
 
-See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). Six commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`.
+See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). 16 commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`, `concat`, `gif`, `thumbnail`, `speed`, `rotate`, `watermark`, `subtitle`, `metadata`, `normalize`, `replace-audio`.
+
+## Build command (mandatory)
+
+**Always use `./build`** (build.carbon), never direct `carbon build`:
+```sh
+./build --output=easy-ffmpeg    # correct: applies -std=c++23, -Isrc/core, link flags
+carbon build src/main.carbon ...  # WRONG: misses C++23, -I, link flags → silent bugs
+```
+
+`build.carbon` centralizes compiler flags, include paths, and link flags. Direct `carbon build` bypasses all of that and produces binaries with wrong C++ standard, missing includes, or unresolved symbols.
+
+## Attribution
+
+When AI agents contribute code, commit messages must include `Assisted-by: <agent-name>` in the trailer block. Example:
+```
+fix: handle empty codec string
+
+Co-authored-by: human <user@example.com>
+Assisted-by: <agent-name>
+```

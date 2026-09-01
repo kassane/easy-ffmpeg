@@ -57,7 +57,7 @@ fn Run() -> i32 {
   }
   let list_content: Cpp.std.string = Cpp.build_concat_list_2(input1, input2);
   let list_path: Cpp.std.string = Cpp.write_temp_file(list_content, ".txt");
-  if (list_path == "") {
+  if (Cpp.str_eq(list_path, "")) {
     Core.PrintStr(Cpp.color.red("error: failed to create concat list file"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -65,17 +65,15 @@ fn Run() -> i32 {
   ArgsBuilder.Clear();
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
-  ArgsBuilder.Add(Constants.FlagFormat());
-  ArgsBuilder.Add(Cpp.strh.make("concat"));
-  ArgsBuilder.Add(Cpp.strh.make("-safe"));
-  ArgsBuilder.Add(Cpp.strh.make("0"));
+  ArgsBuilder.AddFlagValue(Constants.FlagFormat(), Cpp.strh.make(Constants.CmdConcat()));
+  ArgsBuilder.AddFlagValue(Constants.FlagSafe(), Cpp.strh.make(Constants.SafeZero()));
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), list_path);
   if (Cpp.cli.has_flag("--copy") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
   } else {
     let codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
-    if (codec != "") {
+    if (Cpp.str_ne(codec, "")) {
       ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), codec);
     }
   }

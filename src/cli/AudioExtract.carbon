@@ -44,14 +44,14 @@ fn Run() -> i32 {
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.Add(Constants.FlagVn());
   let codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
-  if (codec != "") {
+  if (Cpp.str_ne(codec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), codec);
   } else {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecLibmp3lame());
   }
   let bitrate: Cpp.std.string = Cpp.cli.get_flag_value("--bitrate");
-  if (bitrate != "") { ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), bitrate); }
-  if (output == "") {
+  if (Cpp.str_ne(bitrate, "")) { ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), bitrate); }
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -61,5 +61,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

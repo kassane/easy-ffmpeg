@@ -40,16 +40,16 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (output == "") {
+  if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
   let fps_str: Cpp.std.string = Cpp.cli.get_flag_value("--fps");
   let width_str: Cpp.std.string = Cpp.cli.get_flag_value("--width");
-  var fps: i32 = 15;
-  var width: i32 = 480;
-  if (fps_str != "") {
+  var fps: i32 = Cpp.stoi(Cpp.i_to_str(Constants.DefaultGifFps()));
+  var width: i32 = Cpp.stoi(Cpp.i_to_str(Constants.DefaultGifWidth()));
+  if (Cpp.str_ne(fps_str, "")) {
     if (Cpp.validate_numeric(fps_str) == 0) {
       Core.PrintStr(Cpp.color.red("error: --fps must be a number"));
       Core.PrintStr("\n");
@@ -62,7 +62,7 @@ fn Run() -> i32 {
       return Constants.ExitFailure();
     }
   }
-  if (width_str != "") {
+  if (Cpp.str_ne(width_str, "")) {
     if (Cpp.validate_numeric(width_str) == 0) {
       Core.PrintStr(Cpp.color.red("error: --width must be a number"));
       Core.PrintStr("\n");

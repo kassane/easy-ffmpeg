@@ -42,9 +42,9 @@ export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon
 - **No `match` sugar** → dispatch with `if (argv[1] == Constants.CmdConvert)`.
 - **Exec via `fork()+execvp()`** — no `libav*` import until 0.2 (templates not safe). Keep interop to `<cstdlib>`/`<cstdio>`. Run commands through a `std::string` bridge (see below), not raw pointers.
 - **Every literal lives in `Constants.carbon`** — `grep` gate enforces. Use **functions**, not `let` constants, in `Constants.carbon` (cross-package `let` refs crash the compiler — see below).
-- **Custom headers** — `import Cpp library "ffi_helper.hpp"` compiles/links when the include dir is passed: `carbon build ... -- -std=c++17 -Isrc/core`.
+- **Custom headers** — `import Cpp library "ffi_helper.hpp"` compiles/links when the include dir is passed: `carbon build ... -- -std=c++23 -Isrc/core`.
 
-## Precendents
+## Precedents
 
 - Reference doc: `docs/ARCHITECTURE.md` data-flow, `docs/RULES.md` constraints, `README.md` quickstart.
 
@@ -67,7 +67,7 @@ export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon
   ```
 * **`fn Run()` has no `-> i32`** — it returns nothing; return process code implicitly ok (docs demo runs rc=0).
 * **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` (plus `expression pattern` semantics TODO). You **must** annotate explicitly: `let x: i32 = 42;`. This is a hard toolchain constraint on 2026.08.29 nightly — every `let` needs an explicit type. See `MEMORY.md` `carbon/let-type-inference-disabled`.
-* **Custom headers compile/link** — `import Cpp library "ffi_helper.hpp"` works when the include dir is passed after `--`: `carbon build src/main.carbon src/core/*.carbon --output=/tmp/out -- -std=c++17 -Isrc/core`. Without `-Isrc/core`, the header isn't found.
+* **Custom headers compile/link** — `import Cpp library "ffi_helper.hpp"` works when the include dir is passed after `--`: `carbon build src/main.carbon src/core/*.carbon --output=/tmp/out -- -std=c++23 -Isrc/core`. Without `-Isrc/core`, the header isn't found.
 * **`process::run_str()` via std::string bridge** — Carbon wraps VALUE types like `Cpp.std.string` fine. Recipe: `Cpp.strh.make(Core.String)` → `Cpp.std.string`, then `process::run_str(cmd)`. Verified: runs ffmpeg safely via fork+execvp. For build tool glob expansion only: `run_shell()` wraps `std::system()`.
 * **CRASH: cross-package `let` constant refs** — `let x: Core.String = Constants.FfmpegBin;` (referencing a package-level `let` from another package) triggers a CHECK failure in lowering: `const_id.is_concrete()`. Workaround: use **functions** in `Constants.carbon` (`fn FfmpegBin() -> Core.String`), which work cross-package. See `MEMORY.md` `cpp_compiler_crash.md`.
 * **`!bool` not supported** — use `x == false` instead.
