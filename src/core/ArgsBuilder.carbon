@@ -62,6 +62,10 @@ fn StartBuild(tc: Cpp.std.string) {
   Add(Cpp.strh.make("--"));
   Add(Cpp.strh.make("-std=c++23"));
   Add(Cpp.strh.make("-Isrc/core"));
+  Add(Cpp.strh.make("-Wall"));
+  Add(Cpp.strh.make("-Wextra"));
+  Add(Cpp.strh.make("-fstack-protector-strong"));
+  Add(Cpp.strh.make("-D_FORTIFY_SOURCE=2"));
 }
 
 fn ToSystemCmd() -> Cpp.std.string {

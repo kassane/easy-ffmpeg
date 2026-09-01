@@ -15,6 +15,7 @@ fn ShowHelp() {
   Core.PrintStr("  --mobile      H.264 720p, low bitrate\n");
   Core.PrintStr("  --streaming   H.265 CRF18, high quality\n");
   Core.PrintStr("  --compress    H.265 CRF28, small file (default)\n");
+  Core.PrintStr("  --av1         AV1 CRF30, modern codec\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Fine-tune:\n"));
   Core.PrintStr("  --crf <n>        Quality (0-51, lower=better)\n");
@@ -27,8 +28,7 @@ fn ShowHelp() {
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Examples:\n"));
   Core.PrintStr("  easy-ffmpeg compress video.mp4 --web\n");
-  Core.PrintStr("  easy-ffmpeg compress video.mp4 --mobile\n");
-  Core.PrintStr("  easy-ffmpeg compress video.mp4 --streaming --crf 18\n");
+  Core.PrintStr("  easy-ffmpeg compress video.mp4 --av1\n");
 }
 
 fn Run() -> i32 {
@@ -73,6 +73,10 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx265());
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetStreamingCrf());
     ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetStreamingPreset());
+  } else if (Cpp.cli.has_flag("--av1") == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibsvtav1());
+    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetAv1Crf());
+    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetAv1Preset());
   } else {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx265());
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetCompressCrf());
@@ -96,11 +100,11 @@ fn Run() -> i32 {
   let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
   if (Cpp.str_ne(vbr, "")) {
     ArgsBuilder.AddFlagValue(Cpp.strh.make(Constants.FlagVideoBitrate()), vbr);
+  ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
   }
   if (Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Constants.ScaleFilterHd());
   }
-  ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
   if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");

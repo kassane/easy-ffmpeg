@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.3] - 2026-09-01
+
+### Added
+
+- **AV1 preset**: `--av1` flag for `compress` (libsvtav1, CRF 30, medium preset).
+- **Makefile**: auto-detects latest `carbon_toolchain-*`, bootstrap chain (`build.carbon` → `./build` → `easy-ffmpeg`), targets: `all`, `clean`, `fmt`, `docs`, `check`, `ci`, `once`.
+- **.clang-format**: Google style, 100-col. `make fmt` runs both `carbon format` and `clang-format -i`.
+- **Formatting rule** (RULES.md §7, AGENTS.md): run `make fmt` after every change.
+- **Makefile bootstrap**: if `build.carbon` is modified, `make` rebuilds `./build` first. Direct `carbon build` without flags is now a documented anti-pattern.
+
+### Fixed
+
+- Fixed stale `class Builder` references in ARCHITECTURE.md, PLAN.md (now module-level functions).
+- Fixed data flow example to match actual ArgsBuilder API.
+
+### Changed
+
+- Updated test counts: 54 dry-run checks, 190 total tests.
+- Applied `carbon format` to all `.carbon` files.
+
 ## [0.2.2] - 2026-09-01
 
 ### Changed

@@ -26,7 +26,7 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
   fn Run() { let c: Core.Char = 'H'; Cpp.putchar(c as i32); Cpp.putchar(10 as i32); Core.Print(42); }
   ```
 - Prelude has **no `Vector`, `String.format`, or heap allocator**. Use `Array(String, MaxArgs)` + `len` (ponytail comment marks the ceiling). No `match` — dispatch with `if`.
-- **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` — you **must** annotate: `let x: i32 = 42;`. Every `let` needs an explicit type on 2026.08.29 nightly.
+- **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` — you **must** annotate: `let x: i32 = 42;`. Every `let` needs an explicit type on 2026.09.01 nightly.
 - Exec goes through `process::run_str()` (fork+execvp, no shell) in `src/core/ffi_helper.hpp` — the ONLY place. No `libav*` import yet (0.1 nightly can't safely import `avcodec.h` templates).
 - **Every magic string/number lives in `src/core/Constants.carbon`** — `scripts/check-no-magic.sh` fails builds otherwise. Grep before adding.
 
@@ -50,13 +50,21 @@ See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow)
 
 ## Build command (mandatory)
 
-**Always use `./build`** (build.carbon), never direct `carbon build`:
+**Always use `make` or `./build`**, never direct `carbon build`:
 ```sh
-./build --output=easy-ffmpeg    # correct: applies -std=c++23, -Isrc/core, link flags
+make                      # preferred: handles bootstrap + build chain
+make once                 # build + one-shot verify
+./build --output=easy-ffmpeg  # also valid: applies -std=c++23, -Isrc/core, link flags
 carbon build src/main.carbon ...  # WRONG: misses C++23, -I, link flags → silent bugs
 ```
 
 `build.carbon` centralizes compiler flags, include paths, and link flags. Direct `carbon build` bypasses all of that and produces binaries with wrong C++ standard, missing includes, or unresolved symbols.
+
+**If `build.carbon` is modified, rebuild it first.** The `./build` binary is the compiled form of `build.carbon` — a stale binary silently ignores your changes. `Makefile` handles this automatically via dependency tracking. Manual rebuild:
+```sh
+. ./scripts/env.sh
+"$CARBON" build build.carbon src/core/*.carbon --output=build -- -std=c++23 -Isrc/core
+```
 
 ## Attribution
 
@@ -67,6 +75,10 @@ fix: handle empty codec string
 Co-authored-by: human <user@example.com>
 Assisted-by: mimo-v2.5-free
 ```
+
+## Formatting (post-change)
+
+After every code change, run `make fmt` before committing. This formats Carbon files with `carbon format` and C++ headers with `clang-format --style=google`. Keep markdown files (README, CHANGELOG, docs/*.md) in sync with actual test counts, versions, and features. A formatting-only commit is acceptable — never mix formatting with logic changes.
 
 ## Toolchain features tested (2026-09-01)
 

@@ -110,6 +110,11 @@ All three are **semantics TODO** on 0.9.01. `match (x) { case 1: ... }` errors w
 
 `std::string` works as a Carbon type (`Cpp.std.string`). `std::vector<T>` template instantiation compiles but the bundled libcxx has header ordering bugs (`synth_three_way.h` not included before use) that cause hard errors when `<vector>` is included. Our `ffi_helper.hpp` avoids this by not including `<vector>` from Carbon. Keep C++ container usage inside `ffi_helper.hpp` where `<algorithm>` is included before headers that need it.
 
+### interface / impl generics (0.9.01)
+
+Interface definitions and `impl X as Y` declarations **parse** without error. Method dispatch is broken: calling `x.Method()` on an `impl`-ed type gives "member name not found". Generic functions with interface constraints also fail at call sites. Parsing works, runtime dispatch does not. Not usable yet.
+
+
 ### CppRange
 
 The `CppRange` interface is defined in the prelude and allows iterating C++ containers with `for` loops, but since the container headers don't compile from Carbon, CppRange interop is blocked by the same libcxx bug. Not usable yet.

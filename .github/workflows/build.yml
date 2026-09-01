@@ -53,12 +53,7 @@ jobs:
       
       - name: Build application
         run: |
-          carbon build \
-            build.carbon \
-            src/core/ArgsBuilder.carbon \
-            src/core/Constants.carbon \
-            --output=build \
-            -- -std=c++23 -Isrc/core
+          make all 2>&1
           ./build --verbose
           ./build --check
       

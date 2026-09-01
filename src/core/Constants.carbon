@@ -141,3 +141,9 @@ fn CmdNormalize() -> Core.String { return "normalize"; }
 fn SafeZero() -> Core.String { return "0"; }
 fn VframesOne() -> Core.String { return "1"; }
 fn CmdReplaceAudio() -> Core.String { return "replace-audio"; }
+
+// ── AV1 presets ──────────────────────────────────────────────────────
+fn PresetAv1Crf() -> Core.String { return "30"; }
+fn PresetAv1Preset() -> Core.String { return "medium"; }
+fn PresetAv1AudioBr() -> Core.String { return "128k"; }
+fn CodecLibsvtav1() -> Core.String { return "libsvtav1"; }

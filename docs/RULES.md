@@ -75,12 +75,20 @@
 
 ## 5. Build via build.carbon Only
 
-* **Never run `carbon build` directly.** Always use `./build --output=easy-ffmpeg`.
-* `build.carbon` applies `-std=c++23`, `-Isrc/core`, link flags, and the ArgsBuilder dependency chain. Direct `carbon build` skips all of that.
-* CI gate: `./build --output=easy-ffmpeg` must succeed before any test runs.
+* ****Never run `carbon build` directly.** Always use `make` or `./build --output=easy-ffmpeg`.
+* `Makefile` handles the bootstrap chain (`build.carbon` → `./build` → `easy-ffmpeg`) with automatic dependency tracking. If `build.carbon` is modified, `make` rebuilds `./build` first. Direct `carbon build` skips flags, includes, and link rules.
+* CI gate: `make` or `./build --output=easy-ffmpeg` must succeed before any test runs.
 
 ## 6. Attribution
 
 * AI-generated commits must include `Assisted-by: <agent-name>` in the commit trailer.
 * Format: `Assisted-by: <model-name>` (e.g., `Assisted-by: mimo-v2.5-free`).
 * Human-authored commits do not need this tag.
+
+## 7. Format After Every Change
+
+* **Run `make fmt` after every code change** before committing. This does two things:
+  * `carbon format src/**/*.carbon` — normalizes Carbon source layout.
+  * `clang-format -i src/core/*.hpp` — normalizes C++ headers using `.clang-format` (Google style, 100-col).
+* **Auto-update markdown** when test counts, version numbers, or feature lists change. `README.md`, `CHANGELOG.md`, and `docs/*.md` must reflect current state. The test count in README must match `grep -c check_contains tests/test_dry_run.sh`.
+* **CI gate**: `make fmt` must produce no diff. A formatting-only commit is fine — never mix formatting with logic changes.

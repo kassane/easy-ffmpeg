@@ -58,6 +58,10 @@ OUT=$($BIN compress $FIX /tmp/o.mp4 --compress --dry-run 2>&1)
 check_contains "compress: libx265" "-c:v libx265" "$OUT"
 check_contains "compress: crf 28" "-crf 28" "$OUT"
 
+OUT=$($BIN compress $FIX /tmp/o.mp4 --av1 --dry-run 2>&1)
+check_contains "av1: libsvtav1" "-c:v libsvtav1" "$OUT"
+check_contains "av1: crf 30" "-crf 30" "$OUT"
+
 echo "=== trim ==="
 OUT=$($BIN trim $FIX /tmp/o.mp4 --start 00:00:00 --duration 0.5 --dry-run 2>&1)
 check_contains "trim: -ss flag" "-ss 00:00:00" "$OUT"

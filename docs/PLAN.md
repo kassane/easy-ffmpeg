@@ -151,7 +151,7 @@ Not in MVP.
 
 - [x] `grep -rn '"-c:v"' src --exclude=Constants.carbon` == 0
 - [x] `grep -rn '2500|128k|"h264"' src --exclude=Constants.carbon` == 0 (help strings excluded)\|128k\|"h264"' src --exclude=Constants.carbon` == 0
-- [x] One `Builder` class, one `Exec` function, one `Validate` module.
+- [x] One `ArgsBuilder` module, one `Process.Exec`, one `Validate` module.
 - [x] New flag? Add to `Constants.carbon` + `ArgsBuilder` method, not copy-paste in `cli/*.carbon`.
 
 ## Looping Toolcall

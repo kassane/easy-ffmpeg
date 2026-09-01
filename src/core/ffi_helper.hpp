@@ -38,15 +38,13 @@ inline std::vector<std::string> tokenize(std::string_view cmd) {
       cur += c;
     }
   }
-  if (!cur.empty())
-    toks.push_back(cur);
+  if (!cur.empty()) toks.push_back(cur);
   return toks;
 }
 
-inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
-  std::vector<const char *> argv(toks.size() + 1);
-  for (size_t i = 0; i < toks.size(); i++)
-    argv[i] = toks[i].c_str();
+inline std::vector<const char*> to_argv(const std::vector<std::string>& toks) {
+  std::vector<const char*> argv(toks.size() + 1);
+  for (size_t i = 0; i < toks.size(); i++) argv[i] = toks[i].c_str();
   argv[toks.size()] = nullptr;
   return argv;
 }
@@ -54,26 +52,23 @@ inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
 // Safe exec: fork+execvp on POSIX, _spawnvp on Windows.
 [[nodiscard]] inline int run_str(std::string_view cmd) {
   auto toks = tokenize(cmd);
-  if (toks.empty())
-    return -1;
+  if (toks.empty()) return -1;
   auto argv = to_argv(toks);
 #ifdef _WIN32
   // Windows: _spawnvp blocks until child exits (same semantics as waitpid)
   intptr_t rc =
-      _spawnvp(_P_WAIT, argv[0], const_cast<char *const *>(argv.data()));
+      _spawnvp(_P_WAIT, argv[0], const_cast<char* const*>(argv.data()));
   return (rc < 0) ? -1 : (int)rc;
 #else
   pid_t pid = fork();
-  if (pid < 0)
-    return -1;
+  if (pid < 0) return -1;
   if (pid == 0) {
-    execvp(argv[0], const_cast<char *const *>(argv.data()));
+    execvp(argv[0], const_cast<char* const*>(argv.data()));
     _exit(127);
   }
   int status;
   waitpid(pid, &status, 0);
-  if (WIFEXITED(status))
-    return WEXITSTATUS(status);
+  if (WIFEXITED(status)) return WEXITSTATUS(status);
   return -1;
 #endif
 }
@@ -92,25 +87,19 @@ inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
 // FIFOs). Returns 0 if valid, 1 if path contains "..", 2 if not a regular file.
 [[nodiscard]] inline int validate_path(std::string_view path) {
   std::string p(path);
-  if (p.find("..") != std::string::npos)
-    return 1;
+  if (p.find("..") != std::string::npos) return 1;
   // Reject injection characters used in concat lists and ffmpeg filters
   for (char c : p) {
-    if (c == '\'' || c == '\n' || c == '\r' || c == '\0')
-      return 1;
+    if (c == '\'' || c == '\n' || c == '\r' || c == '\0') return 1;
   }
 #if __has_include(<filesystem>)
   std::error_code ec;
-  if (!fs::exists(p, ec))
-    return 2;
-  if (!fs::is_regular_file(p, ec))
-    return 2;
+  if (!fs::exists(p, ec)) return 2;
+  if (!fs::is_regular_file(p, ec)) return 2;
 #else
   struct stat st;
-  if (stat(p.c_str(), &st) != 0)
-    return 2;
-  if (!S_ISREG(st.st_mode))
-    return 2;
+  if (stat(p.c_str(), &st) != 0) return 2;
+  if (!S_ISREG(st.st_mode)) return 2;
 #endif
   return 0;
 }
@@ -118,19 +107,16 @@ inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
 // Run command and capture stdout. Safe: fork+execvp (POSIX), _popen (Windows).
 [[nodiscard]] inline std::string run_capture(std::string_view cmd) {
 #ifdef _WIN32
-  FILE *p = _popen(std::string(cmd).c_str(), "r");
-  if (!p)
-    return "";
+  FILE* p = _popen(std::string(cmd).c_str(), "r");
+  if (!p) return "";
   std::string result;
   char buf[512];
-  while (fgets(buf, sizeof(buf), p))
-    result += buf;
+  while (fgets(buf, sizeof(buf), p)) result += buf;
   _pclose(p);
   return result;
 #else
   int pipefd[2];
-  if (pipe(pipefd) < 0)
-    return "";
+  if (pipe(pipefd) < 0) return "";
   auto toks = tokenize(cmd);
   if (toks.empty()) {
     close(pipefd[0]);
@@ -148,7 +134,7 @@ inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
-    execvp(argv[0], const_cast<char *const *>(argv.data()));
+    execvp(argv[0], const_cast<char* const*>(argv.data()));
     _exit(127);
   }
   close(pipefd[1]);
@@ -165,23 +151,22 @@ inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
   return result;
 #endif
 }
-} // namespace process
+}  // namespace process
 
 namespace cli {
 inline int g_argc = 0;
-inline char **g_argv = nullptr;
+inline char** g_argv = nullptr;
 inline std::vector<std::string> g_storage;
-inline std::vector<char *> g_ptrs;
+inline std::vector<char*> g_ptrs;
 inline void capture() {
   g_storage.clear();
 #ifdef _WIN32
   // Windows: parse command line string
-  char *cmdline = GetCommandLineA();
-  if (!cmdline)
-    return;
+  char* cmdline = GetCommandLineA();
+  if (!cmdline) return;
   bool in_quote = false;
   std::string cur;
-  for (char *p = cmdline; *p; p++) {
+  for (char* p = cmdline; *p; p++) {
     if (*p == '"') {
       in_quote = !in_quote;
       continue;
@@ -195,13 +180,11 @@ inline void capture() {
       cur += *p;
     }
   }
-  if (!cur.empty())
-    g_storage.push_back(cur);
+  if (!cur.empty()) g_storage.push_back(cur);
 #else
   // POSIX: read /proc/self/cmdline
-  FILE *f = fopen("/proc/self/cmdline", "rb");
-  if (!f)
-    return;
+  FILE* f = fopen("/proc/self/cmdline", "rb");
+  if (!f) return;
   char buf[4096];
   size_t n = fread(buf, 1, sizeof(buf) - 1, f);
   fclose(f);
@@ -209,22 +192,19 @@ inline void capture() {
   size_t start = 0;
   for (size_t i = 0; i <= n; i++) {
     if (i == n || buf[i] == 0) {
-      if (i > start)
-        g_storage.push_back(std::string(buf + start, i - start));
+      if (i > start) g_storage.push_back(std::string(buf + start, i - start));
       start = i + 1;
     }
   }
 #endif
   g_argc = (int)g_storage.size();
   g_ptrs.clear();
-  for (auto &s : g_storage)
-    g_ptrs.push_back(&s[0]);
+  for (auto& s : g_storage) g_ptrs.push_back(&s[0]);
   g_argv = g_ptrs.data();
 }
 inline int argc() { return g_argc; }
 inline int arg_matches(int pos, std::string_view val) {
-  if (pos >= g_argc)
-    return 0;
+  if (pos >= g_argc) return 0;
   return (std::string_view(g_argv[pos]) == val) ? 1 : 0;
 }
 inline int has_help() {
@@ -236,23 +216,19 @@ inline int has_help() {
 }
 inline int has_flag(std::string_view f) {
   for (int i = 1; i < g_argc; i++)
-    if (std::string_view(g_argv[i]) == f)
-      return 1;
+    if (std::string_view(g_argv[i]) == f) return 1;
   return 0;
 }
 inline std::string get_flag_value(std::string_view flag) {
   for (int i = 1; i < g_argc - 1; i++)
-    if (std::string_view(g_argv[i]) == flag)
-      return std::string(g_argv[i + 1]);
+    if (std::string_view(g_argv[i]) == flag) return std::string(g_argv[i + 1]);
   return "";
 }
 inline std::string get_positional(int n) {
   int count = 0;
   for (int i = 2; i < g_argc; i++) {
-    if (g_argv[i][0] == '-')
-      continue;
-    if (count == n)
-      return std::string(g_argv[i]);
+    if (g_argv[i][0] == '-') continue;
+    if (count == n) return std::string(g_argv[i]);
     count++;
   }
   return "";
@@ -260,17 +236,15 @@ inline std::string get_positional(int n) {
 inline int positional_count() {
   int count = 0;
   for (int i = 2; i < g_argc; i++)
-    if (g_argv[i][0] != '-')
-      count++;
+    if (g_argv[i][0] != '-') count++;
   return count;
 }
 inline int is_dry_run() {
   for (int i = 1; i < g_argc; i++)
-    if (std::string_view(g_argv[i]) == "--dry-run")
-      return 1;
+    if (std::string_view(g_argv[i]) == "--dry-run") return 1;
   return 0;
 }
-} // namespace cli
+}  // namespace cli
 
 // === Build checks (pure C++17, no shell/grep) ===
 namespace build {
@@ -279,17 +253,13 @@ namespace build {
 inline std::vector<std::string> read_carbon_src() {
   std::vector<std::string> lines;
 #if __has_include(<filesystem>)
-  for (auto &entry : fs::recursive_directory_iterator("src")) {
-    if (!entry.is_regular_file())
-      continue;
+  for (auto& entry : fs::recursive_directory_iterator("src")) {
+    if (!entry.is_regular_file()) continue;
     auto ext = entry.path().extension().string();
-    if (ext != ".carbon")
-      continue;
-    if (entry.path().filename() == "Constants.carbon")
-      continue;
-    FILE *f = fopen(entry.path().c_str(), "r");
-    if (!f)
-      continue;
+    if (ext != ".carbon") continue;
+    if (entry.path().filename() == "Constants.carbon") continue;
+    FILE* f = fopen(entry.path().c_str(), "r");
+    if (!f) continue;
     char buf[4096];
     int lineno = 0;
     while (fgets(buf, sizeof(buf), f)) {
@@ -311,18 +281,16 @@ inline std::vector<std::string> read_carbon_src() {
   auto lines = read_carbon_src();
   std::vector<std::string> hits;
   // Magic string literals that must only appear in Constants.carbon
-  const char *magic_strs[] = {"\"-c:v\"", "\"-b:v\"", "\"-ss\"", "\"-t\"",
+  const char* magic_strs[] = {"\"-c:v\"", "\"-b:v\"", "\"-ss\"", "\"-t\"",
                               "\"h264\"", "\"aac\"",  "\"mp4\"", "\"libx264\""};
   // Magic integer literals that must only appear in Constants.carbon
-  const char *magic_nums[] = {"23", "1280", "720", "192000", "2500", "64"};
-  for (auto &line : lines) {
+  const char* magic_nums[] = {"23", "1280", "720", "192000", "2500", "64"};
+  for (auto& line : lines) {
     // Extract the source content (after third colon)
     size_t c1 = line.find(':');
-    if (c1 == std::string::npos)
-      continue;
+    if (c1 == std::string::npos) continue;
     size_t c2 = line.find(':', c1 + 1);
-    if (c2 == std::string::npos)
-      continue;
+    if (c2 == std::string::npos) continue;
     std::string content = line.substr(c2 + 1);
     // Skip comment lines
     size_t first_non_space = content.find_first_not_of(" \t");
@@ -330,10 +298,9 @@ inline std::vector<std::string> read_carbon_src() {
         content.substr(first_non_space, 2) == "//")
       continue;
     // Skip help string lines
-    if (content.find("Core.PrintStr") != std::string::npos)
-      continue;
+    if (content.find("Core.PrintStr") != std::string::npos) continue;
     // Check magic strings
-    for (auto *pat : magic_strs) {
+    for (auto* pat : magic_strs) {
       if (content.find(pat) != std::string::npos) {
         hits.push_back(line + "\n");
         goto next_line;
@@ -347,7 +314,7 @@ inline std::vector<std::string> read_carbon_src() {
       goto next_line;
     }
     // Check magic numbers (word-bounded)
-    for (auto *num : magic_nums) {
+    for (auto* num : magic_nums) {
       size_t pos = 0;
       while ((pos = content.find(num, pos)) != std::string::npos) {
         // Check word boundaries (reject letters, digits, underscores — like
@@ -370,8 +337,7 @@ inline std::vector<std::string> read_carbon_src() {
   }
   if (!hits.empty()) {
     fprintf(stderr, "Magic literal(s) outside src/core/Constants.carbon:\n");
-    for (auto &h : hits)
-      fprintf(stderr, "%s", h.c_str());
+    for (auto& h : hits) fprintf(stderr, "%s", h.c_str());
     return 1;
   }
   printf("[check-no-magic] clean\n");
@@ -381,18 +347,15 @@ inline std::vector<std::string> read_carbon_src() {
 [[nodiscard]] inline int check_no_duplication() {
   auto lines = read_carbon_src();
   int errors = 0;
-  auto count_occurrences = [&](const char *pat) -> int {
+  auto count_occurrences = [&](const char* pat) -> int {
     int n = 0;
-    for (auto &line : lines) {
+    for (auto& line : lines) {
       size_t c1 = line.find(':');
-      if (c1 == std::string::npos)
-        continue;
+      if (c1 == std::string::npos) continue;
       size_t c2 = line.find(':', c1 + 1);
-      if (c2 == std::string::npos)
-        continue;
+      if (c2 == std::string::npos) continue;
       std::string content = line.substr(c2 + 1);
-      if (content.find(pat) != std::string::npos)
-        n++;
+      if (content.find(pat) != std::string::npos) n++;
     }
     return n;
   };
@@ -404,11 +367,10 @@ inline std::vector<std::string> read_carbon_src() {
     fprintf(stderr, "Duplication: multiple fn AddFlagValue\n");
     errors = 1;
   }
-  if (!errors)
-    printf("[check-no-duplication] clean\n");
+  if (!errors) printf("[check-no-duplication] clean\n");
   return errors;
 }
-} // namespace build
+}  // namespace build
 
 // === FFI functions called from Carbon ===
 inline void print_str(std::string_view s) {
@@ -428,19 +390,16 @@ inline void argv_add_token(std::string_view t) {
 inline std::string argv_build_cmd() {
   std::string r;
   size_t total = 0;
-  for (auto &t : g_tokens)
-    total += t.size() + 1;
+  for (auto& t : g_tokens) total += t.size() + 1;
   r.reserve(total);
   for (size_t i = 0; i < g_tokens.size(); i++) {
-    if (i)
-      r += " ";
+    if (i) r += " ";
     bool need_quote = g_tokens[i].find(' ') != std::string::npos ||
                       g_tokens[i].find('"') != std::string::npos;
     if (need_quote) {
       r += '"';
       for (char c : g_tokens[i]) {
-        if (c == '"')
-          r += '\\';
+        if (c == '"') r += '\\';
         r += c;
       }
       r += '"';
@@ -458,7 +417,7 @@ inline std::string concat3(std::string_view a, std::string_view b,
                            std::string_view c) {
   return std::string(a) + std::string(b) + std::string(c);
 }
-} // namespace strh
+}  // namespace strh
 
 // === String comparison helpers (Carbon nightly can't lower operator== for
 // std::string) ===
@@ -481,16 +440,11 @@ inline std::string escape_drawtext(std::string_view text) {
 
 // === Scale height mapper ===
 [[nodiscard]] inline std::string scale_height(std::string_view preset) {
-  if (preset == "hd")
-    return "720";
-  if (preset == "fullhd")
-    return "1080";
-  if (preset == "2k")
-    return "1440";
-  if (preset == "retro")
-    return "480";
-  if (preset == "icon")
-    return "240";
+  if (preset == "hd") return "720";
+  if (preset == "fullhd") return "1080";
+  if (preset == "2k") return "1440";
+  if (preset == "retro") return "480";
+  if (preset == "icon") return "240";
   return "0";
 }
 
@@ -517,9 +471,8 @@ inline std::string escape_drawtext(std::string_view text) {
 
 // === Path helpers ===
 [[nodiscard]] inline std::string find_in_path(std::string_view name) {
-  const char *path_env = std::getenv("PATH");
-  if (!path_env)
-    return "";
+  const char* path_env = std::getenv("PATH");
+  if (!path_env) return "";
   std::string paths(path_env);
 #ifdef _WIN32
   const char sep = ';';
@@ -533,8 +486,7 @@ inline std::string escape_drawtext(std::string_view text) {
                           ? paths.substr(start, pos - start)
                           : paths.substr(start);
     std::string full = dir + "/" + std::string(name);
-    if (access(full.c_str(), X_OK) == 0)
-      return full;
+    if (access(full.c_str(), X_OK) == 0) return full;
     if (pos != std::string::npos)
       start = pos + 1;
     else
@@ -551,8 +503,7 @@ inline std::string cwd() {
   return ec ? "." : p.string();
 #else
   char buf[1024];
-  if (getcwd(buf, sizeof(buf)))
-    return std::string(buf);
+  if (getcwd(buf, sizeof(buf))) return std::string(buf);
   return ".";
 #endif
 }
@@ -563,12 +514,10 @@ inline std::string shell_quote(std::string_view arg) {
                     arg.find('"') != std::string::npos ||
                     arg.find('\'') != std::string::npos ||
                     arg.find('\\') != std::string::npos;
-  if (!need_quote)
-    return std::string(arg);
+  if (!need_quote) return std::string(arg);
   std::string result = "\"";
   for (char c : arg) {
-    if (c == '"' || c == '\\')
-      result += '\\';
+    if (c == '"' || c == '\\') result += '\\';
     result += c;
   }
   result += '"';
@@ -579,9 +528,9 @@ inline std::string shell_quote(std::string_view arg) {
 // initializer_list). Properly quotes each argument.
 template <typename Container>
 [[nodiscard]] inline int run_shell(std::string_view app,
-                                   const Container &args) {
+                                   const Container& args) {
   std::string cmd(app);
-  for (const auto &arg : args) {
+  for (const auto& arg : args) {
     cmd += " ";
     cmd += shell_quote(std::string_view(arg));
   }
@@ -591,16 +540,14 @@ template <typename Container>
 // Execute accumulated tokens via shell (C++ FFI — uses g_tokens vector
 // directly)
 [[nodiscard]] inline int argv_run_shell() {
-  if (g_tokens.empty())
-    return -1;
+  if (g_tokens.empty()) return -1;
   return run_shell(g_tokens[0], std::vector<std::string>(g_tokens.begin() + 1,
                                                          g_tokens.end()));
 }
 
 // Execute accumulated tokens via fork+execvp (no shell, no glob)
 [[nodiscard]] inline int argv_run_exec() {
-  if (g_tokens.empty())
-    return -1;
+  if (g_tokens.empty()) return -1;
   return process::run_str(argv_build_cmd());
 }
 
@@ -610,9 +557,8 @@ template <typename Container>
 #ifdef _WIN32
   // Windows: _popen goes through cmd.exe (minimal risk for progress display)
   std::string full = std::string(cmd) + " 2>&1";
-  FILE *p = _popen(full.c_str(), "r");
-  if (!p)
-    return -1;
+  FILE* p = _popen(full.c_str(), "r");
+  if (!p) return -1;
   char buf[1024];
   while (fgets(buf, sizeof(buf), p)) {
     std::string line(buf);
@@ -621,8 +567,7 @@ template <typename Container>
       long ms = std::stol(line.substr(pos + 12));
       if (total_ms > 0) {
         int pct = (int)((ms * 100) / total_ms);
-        if (pct > 100)
-          pct = 100;
+        if (pct > 100) pct = 100;
         fprintf(stderr, "\r[%-50s] %d%%", std::string(pct / 2, '#').c_str(),
                 pct);
       } else {
@@ -640,8 +585,7 @@ template <typename Container>
 #else
   // POSIX: fork+execvp with pipe for safe progress parsing
   int pipefd[2];
-  if (pipe(pipefd) < 0)
-    return process::run_str(cmd);
+  if (pipe(pipefd) < 0) return process::run_str(cmd);
   auto toks = process::tokenize(cmd);
   if (toks.empty()) {
     close(pipefd[0]);
@@ -660,11 +604,11 @@ template <typename Container>
     dup2(pipefd[1], STDOUT_FILENO);
     dup2(pipefd[1], STDERR_FILENO);
     close(pipefd[1]);
-    execvp(argv[0], const_cast<char *const *>(argv.data()));
+    execvp(argv[0], const_cast<char* const*>(argv.data()));
     _exit(127);
   }
   close(pipefd[1]);
-  FILE *p = fdopen(pipefd[0], "r");
+  FILE* p = fdopen(pipefd[0], "r");
   if (!p) {
     waitpid(pid, nullptr, 0);
     return -1;
@@ -677,8 +621,7 @@ template <typename Container>
       long ms = std::stol(line.substr(pos + 12));
       if (total_ms > 0) {
         int pct = (int)((ms * 100) / total_ms);
-        if (pct > 100)
-          pct = 100;
+        if (pct > 100) pct = 100;
         fprintf(stderr, "\r[%-50s] %d%%", std::string(pct / 2, '#').c_str(),
                 pct);
       } else {
@@ -694,8 +637,7 @@ template <typename Container>
     fprintf(stderr, "\r[%-50s] 100%%\n", std::string(50, '#').c_str());
   else
     fprintf(stderr, "\n");
-  if (WIFEXITED(status))
-    return WEXITSTATUS(status);
+  if (WIFEXITED(status)) return WEXITSTATUS(status);
   return -1;
 #endif
 }
@@ -708,15 +650,13 @@ template <typename Container>
                     " -v quiet -show_entries format=duration -of csv=p=0 " +
                     safe_input;
   std::string raw = process::run_capture(cmd);
-  if (raw.empty())
-    return -1;
+  if (raw.empty()) return -1;
   while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
     raw.pop_back();
 #if __has_include(<charconv>)
   double val = 0;
   auto [ptr, ec] = std::from_chars(raw.data(), raw.data() + raw.size(), val);
-  if (ec == std::errc())
-    return (long)(val * 1000);
+  if (ec == std::errc()) return (long)(val * 1000);
 #else
   try {
     return (long)(std::stod(raw) * 1000);
@@ -729,8 +669,7 @@ template <typename Container>
 // Resolve carbon binary: PATH first, then vendored toolchain.
 [[nodiscard]] inline std::string resolve_carbon() {
   std::string from_path = find_in_path("carbon");
-  if (!from_path.empty())
-    return from_path;
+  if (!from_path.empty()) return from_path;
   return cwd() + "/carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon";
 }
 
@@ -751,19 +690,15 @@ template <typename Container>
 
 // === Validate string is numeric (digits, optional dot, optional leading -) ===
 [[nodiscard]] constexpr int validate_numeric(std::string_view s) {
-  if (s.empty())
-    return 0;
+  if (s.empty()) return 0;
   size_t start = 0;
-  if (s[0] == '-' || s[0] == '+')
-    start = 1;
-  if (start >= s.size())
-    return 0;
+  if (s[0] == '-' || s[0] == '+') start = 1;
+  if (start >= s.size()) return 0;
   int dots = 0;
   for (size_t i = start; i < s.size(); i++) {
     if (s[i] == '.') {
       dots++;
-      if (dots > 1)
-        return 0;
+      if (dots > 1) return 0;
     } else if (s[i] < '0' || s[i] > '9')
       return 0;
   }
@@ -790,10 +725,10 @@ inline std::string build_concat_list_2(std::string_view a, std::string_view b) {
 }
 
 // === Concat file list builder (vector) ===
-inline std::string build_concat_list(const std::vector<std::string> &files) {
+inline std::string build_concat_list(const std::vector<std::string>& files) {
   std::string list;
   list.reserve(files.size() * 30);
-  for (const auto &f : files) {
+  for (const auto& f : files) {
     list += "file '" + escape_concat_entry(f) + "'\n";
   }
   return list;
@@ -808,8 +743,7 @@ inline std::string speed_filter(std::string_view factor) {
 // === Probe video duration as string ===
 inline std::string probe_duration_str(std::string ffprobe, std::string input) {
   long ms = probe_duration_ms(ffprobe, input);
-  if (ms < 0)
-    return "";
+  if (ms < 0) return "";
   char buf[32];
   snprintf(buf, sizeof(buf), "%.3f", ms / 1000.0);
   return std::string(buf);
@@ -830,18 +764,19 @@ inline std::string probe_resolution(std::string ffprobe, std::string input) {
 // === Write temp file (for concat lists) ===
 inline std::string write_temp_file(std::string_view content,
                                    std::string_view suffix) {
-  char tmpl[] = "/tmp/easyffmpeg_XXXXXX";
-  int fd = mkstemp(tmpl);
-  if (fd < 0)
-    return "";
-  std::string path(tmpl);
-  write(fd, content.data(), content.size());
+  std::string tpl = "/tmp/easyffmpeg_XXXXXX" + std::string(suffix);
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%s", tpl.c_str());
+  int fd = mkstemp(buf);
+  if (fd < 0) return "";
+  ssize_t written = write(fd, content.data(), content.size());
+  (void)written;  // best-effort; close handles flush
   close(fd);
-  return path;
+  return std::string(buf);
 }
 
 // === Remove temp file ===
-inline void remove_temp_file(const std::string &path) {
+inline void remove_temp_file(const std::string& path) {
   if (!path.empty()) {
 #if __has_include(<filesystem>)
     std::error_code ec;
@@ -854,25 +789,21 @@ inline void remove_temp_file(const std::string &path) {
 
 // === atempo chain builder (atempo only supports 0.5-2.0) ===
 inline std::string atempo_chain(double factor) {
-  if (factor <= 0)
-    return "atempo=1.0";
+  if (factor <= 0) return "atempo=1.0";
   std::string chain;
   chain.reserve(64);
   double remaining = factor;
   while (remaining > 2.0) {
-    if (!chain.empty())
-      chain += ",";
+    if (!chain.empty()) chain += ",";
     chain += "atempo=2.0";
     remaining /= 2.0;
   }
   while (remaining < 0.5) {
-    if (!chain.empty())
-      chain += ",";
+    if (!chain.empty()) chain += ",";
     chain += "atempo=0.5";
     remaining /= 0.5;
   }
-  if (!chain.empty())
-    chain += ",";
+  if (!chain.empty()) chain += ",";
   char buf[32];
   snprintf(buf, sizeof(buf), "%.4g", remaining);
   chain += "atempo=" + std::string(buf);
@@ -889,36 +820,62 @@ inline std::string build_speed_filter_complex(std::string_view factor) {
   return result;
 }
 
+// === Constexpr string lookup table for filter builders ===
+template <size_t N>
+struct FilterEntry {
+  std::string_view key;
+  std::string_view value;
+};
+
+template <size_t N>
+[[nodiscard]] constexpr std::string_view lookup_filter(
+    const FilterEntry<N> (&table)[N], std::string_view key,
+    std::string_view fallback = "") {
+  for (size_t i = 0; i < N; ++i) {
+    if (table[i].key == key) return table[i].value;
+  }
+  return fallback;
+}
+
+// Format a filter string from a format string and arguments.
+[[nodiscard]] inline std::string fmt_filter(std::string_view fmt,
+                                            std::string_view arg) {
+  std::string result;
+  result.reserve(fmt.size() + arg.size());
+  for (size_t i = 0; i < fmt.size(); ++i) {
+    if (fmt[i] == '%' && i + 1 < fmt.size() && fmt[i + 1] == 's') {
+      result += arg;
+      ++i;
+    } else {
+      result += fmt[i];
+    }
+  }
+  return result;
+}
+
 // === Build watermark overlay filter ===
 inline std::string build_watermark_filter(std::string_view position) {
-  if (position == "top-left")
-    return "overlay=10:10";
-  if (position == "top-right")
-    return "overlay=main_w-overlay_w-10:10";
-  if (position == "bottom-left")
-    return "overlay=10:main_h-overlay_h-10";
-  if (position == "bottom-right")
-    return "overlay=main_w-overlay_w-10:main_h-overlay_h-10";
-  if (position == "center")
-    return "overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2";
-  return "overlay=10:10";
+  static constexpr FilterEntry<5> table[] = {
+      {"top-left", "overlay=10:10"},
+      {"top-right", "overlay=main_w-overlay_w-10:10"},
+      {"bottom-left", "overlay=10:main_h-overlay_h-10"},
+      {"bottom-right", "overlay=main_w-overlay_w-10:main_h-overlay_h-10"},
+      {"center", "overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2"}};
+  return std::string(lookup_filter(table, position, "overlay=10:10"));
 }
 
 // === Build rotate filter ===
 inline std::string build_rotate_filter(std::string_view angle) {
-  if (angle == "90")
-    return "transpose=1";
-  if (angle == "180")
-    return "transpose=1,transpose=1";
-  if (angle == "270")
-    return "transpose=2";
-  return "";
+  static constexpr FilterEntry<3> table[] = {{"90", "transpose=1"},
+                                             {"180", "transpose=1,transpose=1"},
+                                             {"270", "transpose=2"}};
+  return std::string(lookup_filter(table, angle));
 }
 
 // === Build gif filter ===
 inline std::string build_gif_filter(int fps, int width) {
-  std::string w = std::to_string(width);
-  return "fps=" + std::to_string(fps) + ",scale=" + w + ":-1:flags=lanczos";
+  return "fps=" + std::to_string(fps) + ",scale=" + std::to_string(width) +
+         ":-1:flags=lanczos";
 }
 
 // === Build thumbnail filter ===
@@ -952,4 +909,4 @@ namespace color {
 [[nodiscard]] inline std::string bold([[maybe_unused]] std::string_view msg) {
   return std::string("\x1B[1m") + std::string(msg) + "\x1B[0m";
 }
-} // namespace color
+}  // namespace color
