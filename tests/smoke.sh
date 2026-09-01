@@ -81,6 +81,54 @@ echo "=== probe ==="
 $BIN probe $FIX --json > $TMPDIR/probe.json 2>/dev/null
 check_file "probe --json" $TMPDIR/probe.json 10
 
+echo "=== concat ==="
+cp $FIX $TMPDIR/concat_a.mp4
+cp $FIX $TMPDIR/concat_b.mp4
+$BIN concat $TMPDIR/concat_a.mp4 $TMPDIR/concat_b.mp4 $TMPDIR/concat_out.mp4 --copy 2>/dev/null
+check_file "concat --copy" $TMPDIR/concat_out.mp4 100
+
+echo "=== gif ==="
+$BIN gif $FIX $TMPDIR/out.gif --fps 5 --width 160 --duration 0.5 2>/dev/null
+check_file "gif" $TMPDIR/out.gif 100
+
+echo "=== thumbnail ==="
+$BIN thumbnail $FIX $TMPDIR/thumb.jpg --time 00:00:00 2>/dev/null
+check_file "thumbnail" $TMPDIR/thumb.jpg 100
+
+echo "=== speed ==="
+$BIN speed $FIX $TMPDIR/speed.mp4 --factor 2.0 2>/dev/null
+check_file "speed --factor 2.0" $TMPDIR/speed.mp4 100
+
+echo "=== rotate ==="
+$BIN rotate $FIX $TMPDIR/rotate.mp4 --angle 90 2>/dev/null
+check_file "rotate --angle 90" $TMPDIR/rotate.mp4 100
+
+echo "=== watermark (text) ==="
+$BIN watermark $FIX $TMPDIR/wm_text.mp4 --text "Test" 2>/dev/null
+check_file "watermark text" $TMPDIR/wm_text.mp4 100
+
+echo "=== subtitle ==="
+cat > $TMPDIR/subs.srt << 'SRTEOF'
+1
+00:00:00,000 --> 00:00:01,000
+Hello
+SRTEOF
+$BIN subtitle $FIX $TMPDIR/sub_out.mp4 --file $TMPDIR/subs.srt 2>/dev/null
+check_file "subtitle" $TMPDIR/sub_out.mp4 100
+
+echo "=== metadata --strip ==="
+$BIN metadata $FIX $TMPDIR/meta.mp4 --strip 2>/dev/null
+check_file "metadata --strip" $TMPDIR/meta.mp4 100
+
+echo "=== normalize ==="
+$BIN normalize $FIX $TMPDIR/norm.mp4 2>/dev/null
+check_file "normalize" $TMPDIR/norm.mp4 100
+
+echo "=== replace-audio ==="
+$BIN audio-extract $FIX $TMPDIR/audio_for_replace.mp3 2>/dev/null
+$BIN replace-audio $FIX $TMPDIR/replaced.mp4 --audio $TMPDIR/audio_for_replace.mp3 2>/dev/null
+check_file "replace-audio" $TMPDIR/replaced.mp4 100
+
 echo "=== error handling ==="
 set +e
 $BIN convert nonexistent.mp4 /tmp/o.mp4 >/dev/null 2>&1

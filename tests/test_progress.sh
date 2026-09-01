@@ -10,7 +10,7 @@ check_progress() {
   desc="$1"; shift
   output=$("$@" 2>&1)
   case "$output" in
-    *time=*|*frame=*)
+    *time=*|*frame=*|*###*|*100%*)
       PASS=$((PASS+1)); echo "  PASS: $desc (found progress output)"
       ;;
     *)

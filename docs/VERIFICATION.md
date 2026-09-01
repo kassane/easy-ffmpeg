@@ -12,7 +12,7 @@
 | 2 | Each subcommand maps to correct ffmpeg args | `easy-ffmpeg trim --dry-run in.mp4 --start 10 --duration 5 out.mp4` | prints `ffmpeg -ss 10 -t 5 -i in.mp4 -c copy out.mp4` (compare to `ffmpeg -h`) |
 | 3 | Hardening: validate-once, dry-run, error codes | `scripts/loop-build.sh --once` | exit 0; invalid time → `ExitUsage` 2 |
 | 4 | DX: completions + CI checks | `./build --ci` (C++ native, wraps all gates) | all exit 0 |
-| 5 | Feature expansion: 16 commands | `bash tests/test_new_dry_run.sh && bash tests/test_dry_run.sh` | all 45+ dry-run pass |
+| 5 | Feature expansion: 16 commands | `bash tests/test_new_dry_run.sh && bash tests/test_dry_run.sh && bash tests/smoke.sh` | all 59+ dry-run + 17 smoke pass |
 
 ## Trust boundaries (never skip)
 
