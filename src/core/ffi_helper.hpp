@@ -31,14 +31,28 @@ namespace process {
 inline std::vector<std::string> tokenize(std::string_view cmd) {
   std::vector<std::string> toks;
   std::string cur;
-  for (char c : cmd) {
-    if (c == ' ' || c == '\t') {
-      if (!cur.empty()) {
-        toks.push_back(cur);
-        cur.clear();
+  bool in_quote = false;
+  for (size_t i = 0; i < cmd.size(); i++) {
+    char c = cmd[i];
+    if (in_quote) {
+      if (c == '\\' && i + 1 < cmd.size()) {
+        cur += cmd[++i];
+      } else if (c == '"') {
+        in_quote = false;
+      } else {
+        cur += c;
       }
     } else {
-      cur += c;
+      if (c == '"') {
+        in_quote = true;
+      } else if (c == ' ' || c == '\t') {
+        if (!cur.empty()) {
+          toks.push_back(cur);
+          cur.clear();
+        }
+      } else {
+        cur += c;
+      }
     }
   }
   if (!cur.empty()) toks.push_back(cur);
@@ -597,10 +611,26 @@ template <typename Container>
                                                          g_tokens.end()));
 }
 
-// Execute accumulated tokens via fork+execvp (no shell, no glob)
+// Execute accumulated tokens via fork+execvp (no shell, no serialize
+// round-trip)
 [[nodiscard]] inline int argv_run_exec() {
   if (g_tokens.empty()) return -1;
-  return process::run_str(argv_build_cmd());
+  auto argv = process::to_argv(g_tokens);
+#ifdef _WIN32
+  intptr_t rc =
+      _spawnvp(_P_WAIT, argv[0], const_cast<char* const*>(argv.data()));
+  return (rc < 0) ? -1 : (int)rc;
+#else
+  pid_t pid = fork();
+  if (pid < 0) return -1;
+  if (pid == 0) {
+    execvp(argv[0], const_cast<char* const*>(argv.data()));
+    _exit(127);
+  }
+  int status;
+  waitpid(pid, &status, 0);
+  return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+#endif
 }
 
 // Run command and show progress bar by parsing ffmpeg stderr.

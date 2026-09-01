@@ -11,10 +11,19 @@
 - **`carbon clang` docs**: documented standalone C++ compilation, `-fexperimental-library`, `<filesystem>`/`<memory_resource>` support.
 - **colordetect subcommand**: detect video color properties (range, alpha mode).
 - **crop tests**: dry-run (2 checks) + security (missing input, valid input).
+- **License headers**: MIT SPDX headers on all 24 source files.
 - **`run_capture_stderr()`**: C++ helper for capturing both stdout and stderr from commands.
 - **`Process.RunCapture()`**: Carbon wrapper for `run_capture` (stdout only).
 
 ### Fixed
+
+- **`argv_run_exec()` round-trip bug**: `argv_build_cmd()` added shell quotes, `tokenize()` didn't parse them → `execvp` received literal `"` characters. Fixed: pass `g_tokens` directly to `execvp`. Also fixed `tokenize()` to handle shell quotes for `Process.Exec()` path.
+- **`convert --codec h265`**: mapped to `hevc` (ffmpeg auto-selects `libx265`).
+- **SVT-AV1 `-preset`**: changed from string `"medium"` to integer `"8"` (SVT-AV1 requires integer -2..13).
+- **`test_security.sh`**: moved `[ "$FAIL" = "0" ] || exit 1` to end of file — was silently skipping last 3 tests on any failure.
+- **`scripts/debug.py`**: added `crop` and `colordetect` to `DRY_RUN_TESTS` (was 16, now 18).
+
+### Fixed (prior)
 
 - **`--web` preset missing faststart**: moved `-movflags +faststart` out of `--video-bitrate` block to apply for `--web`.
 - **`write_temp_file` suffix**: `mkstemp` requires `XXXXXX` at end; create first, then `rename()` with suffix.

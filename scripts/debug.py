@@ -28,7 +28,7 @@ def check(desc, ok, detail=""):
 def section(name):
     print(f"\n=== {name} ===")
 
-# ── All 16 subcommands: dry-run ──────────────────────────────────────────────
+# ── All 18 subcommands: dry-run ──────────────────────────────────────────────
 DRY_RUN_TESTS = [
     ("convert",       f"{BIN} convert {FIX} /tmp/o.mp4 --dry-run"),
     ("compress",      f"{BIN} compress {FIX} /tmp/o.mp4 --web --dry-run"),
@@ -46,10 +46,12 @@ DRY_RUN_TESTS = [
     ("metadata",      f"{BIN} metadata {FIX} /tmp/o.mp4 --strip --dry-run"),
     ("normalize",     f"{BIN} normalize {FIX} /tmp/o.mp4 --dry-run"),
     ("replace-audio", f"{BIN} replace-audio {FIX} /tmp/o.mp4 --audio {FIX} --dry-run"),
+    ("crop",          f"{BIN} crop {FIX} /tmp/o.mp4 --width 32 --height 32 --dry-run"),
+    ("colordetect",   f"{BIN} colordetect {FIX} --dry-run"),
 ]
 
 def test_dry_run():
-    section("dry-run (all 16 commands)")
+    section("dry-run (all 18 commands)")
     for desc, cmd in DRY_RUN_TESTS:
         rc, out = run(cmd)
         has_cmd = "ffmpeg" in out or "ffprobe" in out

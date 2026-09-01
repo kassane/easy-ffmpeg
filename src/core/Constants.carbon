@@ -23,6 +23,7 @@ fn FfprobeBin() -> Core.String { return "ffprobe"; }
 
 // ── Codec whitelist ────────────────────────────────────────────────────────
 fn CodecH264() -> Core.String { return "h264"; }
+fn CodecHevc() -> Core.String { return "hevc"; }
 fn CodecAac() -> Core.String { return "aac"; }
 fn CodecMp3() -> Core.String { return "mp3"; }
 fn CodecVp9() -> Core.String { return "vp9"; }
@@ -147,7 +148,7 @@ fn CmdReplaceAudio() -> Core.String { return "replace-audio"; }
 
 // ── AV1 presets ──────────────────────────────────────────────────────
 fn PresetAv1Crf() -> Core.String { return "30"; }
-fn PresetAv1Preset() -> Core.String { return "medium"; }
+fn PresetAv1Preset() -> Core.String { return "8"; }
 fn PresetAv1AudioBr() -> Core.String { return "128k"; }
 fn CodecLibsvtav1() -> Core.String { return "libsvtav1"; }
 

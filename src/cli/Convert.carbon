@@ -42,8 +42,12 @@ fn Run() -> i32 {
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
   ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  let codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
+  var codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
   if (Cpp.str_ne(codec, "")) {
+    // Map common aliases to ffmpeg encoder names
+    if (Cpp.str_eq(codec, Cpp.strh.make("h265"))) {
+      codec = Cpp.strh.make(Constants.CodecHevc());
+    }
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), codec);
   } else {
     let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
