@@ -6,7 +6,7 @@
 package Constants library "core/constants";
 
 // ── Version ────────────────────────────────────────────────────────────────
-fn Version() -> Core.String { return "0.2.2"; }
+fn Version() -> Core.String { return "0.2.5"; }
 
 // ── Exit codes ─────────────────────────────────────────────────────────────
 fn ExitSuccess() -> i32 { return 0; }
@@ -28,8 +28,6 @@ fn CodecAac() -> Core.String { return "aac"; }
 fn CodecMp3() -> Core.String { return "mp3"; }
 fn CodecVp9() -> Core.String { return "vp9"; }
 fn CodecAv1() -> Core.String { return "av1"; }
-fn CodecLibx264() -> Core.String { return "libx264"; }
-fn CodecLibx265() -> Core.String { return "libx265"; }
 fn CodecLibmp3lame() -> Core.String { return "libmp3lame"; }
 fn FlagCodecCopy() -> Core.String { return "copy"; }
 
@@ -62,6 +60,7 @@ fn FlagShortest() -> Core.String { return "-shortest"; }
 fn FlagCrf() -> Core.String { return "-crf"; }
 fn FlagPreset() -> Core.String { return "-preset"; }
 fn FlagAudioBr() -> Core.String { return "-b:a"; }
+fn FlagSn() -> Core.String { return "-sn"; }
 fn FlagVideoBitrate() -> Core.String { return "-b:v"; }
 fn FlagMovflags() -> Core.String { return "-movflags"; }
 fn FaststartValue() -> Core.String { return "+faststart"; }
@@ -92,25 +91,13 @@ fn MaxArgs() -> i32 { return 64; }
 // ── Encoding defaults ──────────────────────────────────────────────────────
 fn DefaultCrf() -> Core.String { return "23"; }
 fn DefaultPreset() -> Core.String { return "fast"; }
+fn DefaultVideoEncoder() -> Core.String { return "libx264"; }
 fn DefaultAudioBitrate() -> Core.String { return "128k"; }
 fn DefaultGifFps() -> i32 { return 15; }
 fn DefaultGifWidth() -> i32 { return 480; }
 fn DefaultThumbnailTime() -> Core.String { return "00:00:05"; }
 
 // ── Compress presets ───────────────────────────────────────────────────────
-fn PresetWebCrf() -> Core.String { return "23"; }
-fn PresetWebPreset() -> Core.String { return "medium"; }
-fn PresetWebAudioBr() -> Core.String { return "128k"; }
-fn PresetMobileCrf() -> Core.String { return "26"; }
-fn PresetMobilePreset() -> Core.String { return "medium"; }
-fn PresetMobileAudioBr() -> Core.String { return "96k"; }
-fn PresetMobileMaxH() -> Core.String { return "720"; }
-fn PresetStreamingCrf() -> Core.String { return "18"; }
-fn PresetStreamingPreset() -> Core.String { return "medium"; }
-fn PresetStreamingAudioBr() -> Core.String { return "256k"; }
-fn PresetCompressCrf() -> Core.String { return "28"; }
-fn PresetCompressPreset() -> Core.String { return "medium"; }
-fn PresetCompressAudioBr() -> Core.String { return "128k"; }
 
 // ── Scale presets ──────────────────────────────────────────────────────────
 fn ScaleHd() -> Core.String { return "720"; }
@@ -147,10 +134,6 @@ fn VframesOne() -> Core.String { return "1"; }
 fn CmdReplaceAudio() -> Core.String { return "replace-audio"; }
 
 // ── AV1 presets ──────────────────────────────────────────────────────
-fn PresetAv1Crf() -> Core.String { return "30"; }
-fn PresetAv1Preset() -> Core.String { return "8"; }
-fn PresetAv1AudioBr() -> Core.String { return "128k"; }
-fn CodecLibsvtav1() -> Core.String { return "libsvtav1"; }
 
 // ── Crop ────────────────────────────────────────────────────────────
 fn CmdCrop() -> Core.String { return "crop"; }

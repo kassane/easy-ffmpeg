@@ -12,9 +12,9 @@ _easy_ffmpeg() {
   local subcmd="${COMP_WORDS[1]}"
   case "$subcmd" in
     convert)
-      COMPREPLY=($(compgen -W "--codec --to --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--codec --no-subs --dry-run --help -h" -- "$cur")) ;;
     compress)
-      COMPREPLY=($(compgen -W "--web --mobile --streaming --compress --crf --preset --codec --audio-codec --video-bitrate --bitrate --av1 --jxl --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--web --mobile --streaming --compress --crf --preset --codec --audio-codec --video-bitrate --bitrate --av1 --jxl --no-subs --dry-run --help -h" -- "$cur")) ;;
     trim)
       COMPREPLY=($(compgen -W "--start --duration --end --sseof --copy --dry-run --help -h" -- "$cur")) ;;
     resize)
@@ -26,19 +26,19 @@ _easy_ffmpeg() {
     concat)
       COMPREPLY=($(compgen -W "--copy --codec --dry-run --help -h" -- "$cur")) ;;
     gif)
-      COMPREPLY=($(compgen -W "--fps --width --duration --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--fps --width --dry-run --help -h" -- "$cur")) ;;
     thumbnail)
       COMPREPLY=($(compgen -W "--time --every --webp --dry-run --help -h" -- "$cur")) ;;
     speed)
-      COMPREPLY=($(compgen -W "--factor --half --double --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--factor --dry-run --help -h" -- "$cur")) ;;
     rotate)
-      COMPREPLY=($(compgen -W "--angle --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--angle --flip --dry-run --help -h" -- "$cur")) ;;
     watermark)
       COMPREPLY=($(compgen -W "--image --text --position --dry-run --help -h" -- "$cur")) ;;
     subtitle)
       COMPREPLY=($(compgen -W "--file --dry-run --help -h" -- "$cur")) ;;
     metadata)
-      COMPREPLY=($(compgen -W "--strip --set --dry-run --help -h" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--strip --title --artist --dry-run --help -h" -- "$cur")) ;;
     normalize)
       COMPREPLY=($(compgen -W "--dry-run --help -h" -- "$cur")) ;;
     replace-audio)

@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.2.5] - 2026-09-01
+
+### Added
+
+- **`--no-subs` flag**: strips subtitle tracks from `compress` and `convert`. Auto-applied for `--web`/`--mobile` presets.
+- **`std::format`**: replaced `std::to_string`/`snprintf`/string concat with `std::format` across probe helpers, filter builders, and atempo chain.
+- **`DefaultVideoEncoder()`**: extracted magic `"libx264"` to Constants.carbon (check-no-magic clean).
+
+### Removed
+
+- **Dead C++ helpers**: `probe_codecs()`, `probe_resolution()`, `probe_duration_str()` (defined but never called).
+
+### Fixed
+
+- **Completions**: removed phantom `--to`/`--half`/`--double`/`--set`/`--duration`; added `--no-subs` on convert/compress, `--flip` on rotate.
+- **`test_dry_run.sh`**: removed mid-script `Results: 29`, added final `Results: 58`.
+- **`test_security.sh`**: removed mid-script `Results: 51`, added final `Results: 54`.
+- **README.md**: fixed stale test counts to 150 (58+54+14+24).
+- **`make test` target**: runs full shell test suite (dry-run, security, exit codes, smoke).
+- **Test fixtures**: added `in_h265.mp4`, `in_hd.mp4` (1280x720), `in_odd.mp4` for codec/dimension/resize testing.
+- **C++ preset builder** (`build_compress_args()`): single C++ call replaces 40+ Carbon `AddFlagValue` calls for codec/crf/preset selection.
+- **STL container refactoring**: `video_compatible()`, `audio_compatible()`, `format_for_ext()` rewritten with `std::unordered_map`/`std::unordered_set` instead of if-chains.
+
+### Removed
+
+- **19 dead constants** from `Constants.carbon`: preset-specific crf/preset/audio-br constants now handled by C++ `build_compress_args()`.
+
+### Fixed
+
+- **`thumbnail --time` test**: `check_contains` was checking the wrong `$OUT` (overwritten by `--webp` test).
+
 ## [0.2.4] - 2026-09-01
 
 ### Added
@@ -9,6 +40,11 @@
 - **JPEG XL compression**: `--jxl` flag for `compress` (uses `libjxl`).
 - **Compiler hardening**: `-Wall -Wextra -fstack-protector-strong -D_FORTIFY_SOURCE=2` in `ArgsBuilder.StartBuild()` and Makefile.
 - **`carbon clang` docs**: documented standalone C++ compilation, `-fexperimental-library`, `<filesystem>`/`<memory_resource>` support.
+- **Smart remux**: `convert` auto-copies compatible streams (h264+aac mp4→mkv = instant copy).
+- **Per-format presets**: `--web`/`--mobile`/`--streaming` adapt codec to output format (.webm → VP9).
+- **Video normalization**: auto-adds yuv420p + even dimensions for h264/h265 output.
+- **Audio downmix**: `--web`/`--mobile` auto-downmix to stereo when source > 2 channels.
+- **Container compatibility tables**: full codec compatibility for mp4, matroska, webm, mov, mpegts.
 - **colordetect subcommand**: detect video color properties (range, alpha mode).
 - **crop tests**: dry-run (2 checks) + security (missing input, valid input).
 - **License headers**: MIT SPDX headers on all 24 source files.

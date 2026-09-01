@@ -46,7 +46,7 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 
 ## Subcommand → ffmpeg mapping source of truth
 
-See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). 17 commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`, `concat`, `gif`, `thumbnail`, `speed`, `rotate`, `watermark`, `subtitle`, `metadata`, `normalize`, `replace-audio`, `crop`.
+See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). 18 commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`, `concat`, `gif`, `thumbnail`, `speed`, `rotate`, `watermark`, `subtitle`, `metadata`, `normalize`, `replace-audio`, `crop`, `colordetect`.
 
 ## Build command (mandatory)
 

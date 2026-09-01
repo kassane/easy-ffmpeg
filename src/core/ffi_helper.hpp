@@ -5,8 +5,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #if __has_include(<filesystem>)
 #include <filesystem>
@@ -334,8 +337,8 @@ inline std::vector<std::string> read_carbon_src() {
       // strip trailing newline
       while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
         line.pop_back();
-      lines.push_back(entry.path().string() + ":" + std::to_string(lineno) +
-                      ":" + line);
+      lines.push_back(
+          std::format("{}:{}:{}", entry.path().string(), lineno, line));
     }
     fclose(f);
   }
@@ -489,7 +492,7 @@ inline std::string concat3(std::string_view a, std::string_view b,
 // std::string) ===
 inline bool str_eq(std::string_view a, std::string_view b) { return a == b; }
 inline bool str_ne(std::string_view a, std::string_view b) { return a != b; }
-inline std::string i_to_str(int i) { return std::to_string(i); }
+inline std::string i_to_str(int i) { return std::format("{}", i); }
 
 // === Escape text for ffmpeg drawtext filter ===
 inline std::string escape_drawtext(std::string_view text) {
@@ -518,21 +521,272 @@ inline std::string escape_drawtext(std::string_view text) {
 [[nodiscard]] inline std::string probe_stream_codec(std::string_view ffprobe,
                                                     std::string_view input,
                                                     std::string_view stream) {
-  std::string cmd = std::string(ffprobe) + " -v quiet -select_streams " +
-                    std::string(stream) +
-                    " -show_entries stream=codec_name -of csv=p=0 " +
-                    std::string(input);
+  std::string cmd = std::format(
+      "{} -v quiet -select_streams {} -show_entries stream=codec_name -of "
+      "csv=p=0 {}",
+      ffprobe, stream, input);
   std::string raw = process::run_capture(cmd);
   while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
     raw.pop_back();
   return raw;
 }
 
-// === Probe codecs ===
-[[nodiscard]] inline std::string probe_codecs(std::string ffprobe,
-                                              std::string input) {
-  return probe_stream_codec(ffprobe, input, "v:0") + "," +
-         probe_stream_codec(ffprobe, input, "a:0");
+// === Codec compatibility tables (ported from Crystal akitaonrails/easy-ffmpeg)
+// ===
+
+// Returns 1 if video codec can be muxed in container without re-encoding.
+[[nodiscard]] inline int video_compatible(std::string_view codec,
+                                          std::string_view format) {
+  using Set = std::unordered_set<std::string_view>;
+  static const std::unordered_map<std::string_view, Set> table = {
+      {"mp4", {"h264", "hevc", "mpeg4", "av1"}},
+      {"matroska",
+       {"h264", "hevc", "vp8", "vp9", "av1", "mpeg4", "theora", "prores",
+        "ffv1"}},
+      {"mkv",
+       {"h264", "hevc", "vp8", "vp9", "av1", "mpeg4", "theora", "prores",
+        "ffv1"}},
+      {"webm", {"vp8", "vp9", "av1"}},
+      {"mov", {"h264", "hevc", "prores", "mpeg4", "mjpeg"}},
+      {"mpegts", {"h264", "hevc", "mpeg2video"}},
+      {"ts", {"h264", "hevc", "mpeg2video"}},
+  };
+  auto it = table.find(format);
+  return it != table.end() && it->second.count(codec);
+}
+
+// Returns 1 if audio codec can be muxed in container without re-encoding.
+[[nodiscard]] inline int audio_compatible(std::string_view codec,
+                                          std::string_view format) {
+  using Set = std::unordered_set<std::string_view>;
+  static const std::unordered_map<std::string_view, Set> table = {
+      {"mp4", {"aac", "mp3", "ac3", "opus", "flac"}},
+      {"matroska", {"aac", "mp3", "ac3", "dts", "flac", "opus", "vorbis"}},
+      {"mkv", {"aac", "mp3", "ac3", "dts", "flac", "opus", "vorbis"}},
+      {"webm", {"opus", "vorbis"}},
+      {"mov", {"aac", "mp3", "ac3", "alac", "flac"}},
+      {"mpegts", {"aac", "mp3", "ac3"}},
+      {"ts", {"aac", "mp3", "ac3"}},
+  };
+  auto it = table.find(format);
+  return it != table.end() && it->second.count(codec);
+}
+
+// Infers container format name from output file extension.
+[[nodiscard]] inline std::string format_for_ext(std::string_view path) {
+  static const std::unordered_map<std::string_view, std::string_view> ext_map =
+      {
+          {".mkv", "matroska"}, {".mka", "matroska"}, {".webm", "webm"},
+          {".mov", "mov"},      {".avi", "avi"},      {".ts", "mpegts"},
+          {".mts", "mpegts"},   {".ogg", "ogg"},      {".ogv", "ogg"},
+          {".flv", "flv"},
+      };
+  auto dot = path.rfind('.');
+  if (dot == std::string_view::npos) return "mp4";
+  auto ext = path.substr(dot);
+  auto it = ext_map.find(ext);
+  return it != ext_map.end() ? std::string(it->second) : "mp4";
+}
+
+// === Video normalization filters (pixel format + even dimensions) ===
+
+// Builds normalization filter string for h264/h265 encoding.
+// Returns empty string if no normalization needed.
+[[nodiscard]] inline std::string normalize_video_filters(
+    std::string_view pix_fmt, int width, int height, std::string_view encoder) {
+  if (encoder != "libx264" && encoder != "libx265" && encoder != "h264" &&
+      encoder != "hevc") {
+    return "";
+  }
+  std::string filters;
+  // Ensure even dimensions (required by h264/h265)
+  if ((width & 1) || (height & 1)) {
+    filters = "scale=trunc(iw/2)*2:trunc(ih/2)*2";
+  }
+  // Normalize pixel format
+  if (pix_fmt != "yuv420p" && pix_fmt != "yuv420p10le" && !pix_fmt.empty()) {
+    if (!filters.empty()) filters += ",";
+    filters += "format=yuv420p";
+  }
+  return filters;
+}
+
+// Probe pixel format of first video stream.
+[[nodiscard]] inline std::string probe_pix_fmt(std::string ffprobe,
+                                               std::string input) {
+  std::string cmd = std::format(
+      "{} -v quiet -select_streams v:0 -show_entries stream=pix_fmt -of "
+      "csv=p=0 {}",
+      ffprobe, input);
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
+    raw.pop_back();
+  return raw;
+}
+
+// Probe width of first video stream.
+[[nodiscard]] inline int probe_width(std::string ffprobe, std::string input) {
+  std::string cmd = std::format(
+      "{} -v quiet -select_streams v:0 -show_entries stream=width -of csv=p=0 "
+      "{}",
+      ffprobe, input);
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
+    raw.pop_back();
+  try {
+    return std::stoi(raw);
+  } catch (...) {
+    return 0;
+  }
+}
+
+// Probe height of first video stream.
+[[nodiscard]] inline int probe_height(std::string ffprobe, std::string input) {
+  std::string cmd = std::format(
+      "{} -v quiet -select_streams v:0 -show_entries stream=height -of csv=p=0 "
+      "{}",
+      ffprobe, input);
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
+    raw.pop_back();
+  try {
+    return std::stoi(raw);
+  } catch (...) {
+    return 0;
+  }
+}
+
+// Probe channel count of first audio stream.
+[[nodiscard]] inline int probe_channels(std::string ffprobe,
+                                        std::string input) {
+  std::string cmd = std::format(
+      "{} -v quiet -select_streams a:0 -show_entries stream=channels -of "
+      "csv=p=0 {}",
+      ffprobe, input);
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
+    raw.pop_back();
+  try {
+    return std::stoi(raw);
+  } catch (...) {
+    return 0;
+  }
+}
+
+// === Compress preset builder ===
+// Returns space-separated ffmpeg args for a compress preset.
+// Preset: "web", "mobile", "streaming", "compress", "av1", "jxl".
+// Format: output file extension (e.g. ".mp4", ".webm").
+[[nodiscard]] inline std::string build_compress_args(std::string_view preset,
+                                                     std::string_view format) {
+  bool is_webm = (format == "webm");
+  std::string args;
+
+  auto add = [&](std::string_view s) {
+    if (!args.empty()) args += " ";
+    args += s;
+  };
+
+  if (preset == "web") {
+    if (is_webm) {
+      add("-c:v");
+      add("libvpx-vp9");
+      add("-crf");
+      add("32");
+    } else {
+      add("-c:v");
+      add("libx264");
+      add("-crf");
+      add("23");
+      add("-preset");
+      add("medium");
+    }
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("128k");
+    if (!is_webm) add("-movflags");
+    add("+faststart");
+  } else if (preset == "mobile") {
+    if (is_webm) {
+      add("-c:v");
+      add("libvpx-vp9");
+      add("-crf");
+      add("36");
+    } else {
+      add("-c:v");
+      add("libx264");
+      add("-crf");
+      add("26");
+      add("-preset");
+      add("medium");
+    }
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("96k");
+    add("-vf");
+    add("scale=-2:720");
+  } else if (preset == "streaming") {
+    if (is_webm) {
+      add("-c:v");
+      add("libvpx-vp9");
+      add("-crf");
+      add("24");
+    } else {
+      add("-c:v");
+      add("libx265");
+      add("-crf");
+      add("18");
+      add("-preset");
+      add("medium");
+    }
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("256k");
+    if (!is_webm) add("-movflags");
+    add("+faststart");
+  } else if (preset == "compress") {
+    if (is_webm) {
+      add("-c:v");
+      add("libvpx-vp9");
+      add("-crf");
+      add("38");
+    } else {
+      add("-c:v");
+      add("libx265");
+      add("-crf");
+      add("28");
+      add("-preset");
+      add("medium");
+    }
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("128k");
+  } else if (preset == "av1") {
+    add("-c:v");
+    add("libsvtav1");
+    add("-crf");
+    add("30");
+    add("-preset");
+    add("8");
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("128k");
+  } else if (preset == "jxl") {
+    add("-c:v");
+    add("libjxl");
+    add("-crf");
+    add("0");
+    add("-c:a");
+    add("aac");
+    add("-b:a");
+    add("128k");
+  }
+  return args;
 }
 
 // === Path helpers ===
@@ -728,9 +982,9 @@ template <typename Container>
 [[nodiscard]] inline long probe_duration_ms(std::string ffprobe,
                                             std::string input) {
   std::string safe_input = std::string(input);
-  std::string cmd = std::string(ffprobe) +
-                    " -v quiet -show_entries format=duration -of csv=p=0 " +
-                    safe_input;
+  std::string cmd =
+      std::format("{} -v quiet -show_entries format=duration -of csv=p=0 {}",
+                  ffprobe, safe_input);
   std::string raw = process::run_capture(cmd);
   if (raw.empty()) return -1;
   while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
@@ -802,8 +1056,8 @@ inline std::string escape_concat_entry(std::string_view s) {
 
 // === Concat file list builder (2 files) ===
 inline std::string build_concat_list_2(std::string_view a, std::string_view b) {
-  return "file '" + escape_concat_entry(a) + "'\nfile '" +
-         escape_concat_entry(b) + "'\n";
+  return "file '" + std::string(escape_concat_entry(a)) + "'\nfile '" +
+         std::string(escape_concat_entry(b)) + "'\n";
 }
 
 // === Concat file list builder (vector) ===
@@ -811,7 +1065,7 @@ inline std::string build_concat_list(const std::vector<std::string>& files) {
   std::string list;
   list.reserve(files.size() * 30);
   for (const auto& f : files) {
-    list += "file '" + escape_concat_entry(f) + "'\n";
+    list += "file '" + std::string(escape_concat_entry(f)) + "'\n";
   }
   return list;
 }
@@ -819,28 +1073,7 @@ inline std::string build_concat_list(const std::vector<std::string>& files) {
 // === Speed filter builder ===
 inline std::string speed_filter(std::string_view factor) {
   std::string f(factor);
-  return "setpts=" + f + "*PTS";
-}
-
-// === Probe video duration as string ===
-inline std::string probe_duration_str(std::string ffprobe, std::string input) {
-  long ms = probe_duration_ms(ffprobe, input);
-  if (ms < 0) return "";
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%.3f", ms / 1000.0);
-  return std::string(buf);
-}
-
-// === Probe video resolution ===
-inline std::string probe_resolution(std::string ffprobe, std::string input) {
-  std::string cmd = ffprobe +
-                    " -v quiet -select_streams v:0 -show_entries "
-                    "stream=width,height -of csv=p=0 " +
-                    input;
-  std::string raw = process::run_capture(cmd);
-  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
-    raw.pop_back();
-  return raw;
+  return std::format("setpts={}*PTS", f);
 }
 
 // === Write temp file (for concat lists) ===
@@ -890,9 +1123,7 @@ inline std::string atempo_chain(double factor) {
     remaining /= 0.5;
   }
   if (!chain.empty()) chain += ",";
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%.4g", remaining);
-  chain += "atempo=" + std::string(buf);
+  chain += std::format("atempo={:.4g}", remaining);
   return chain;
 }
 
@@ -902,7 +1133,7 @@ inline std::string build_speed_filter_complex(std::string_view factor) {
   std::string audio = atempo_chain(std::stod(f));
   std::string result;
   result.reserve(32 + f.size() + audio.size());
-  result = "[0:v]setpts=" + f + "*PTS[v];[0:a]" + audio + "[a]";
+  result = std::format("[0:v]setpts={}*PTS[v];[0:a]{}[a]", f, audio);
   return result;
 }
 
@@ -960,19 +1191,17 @@ inline std::string build_rotate_filter(std::string_view angle) {
 
 // === Build gif filter ===
 inline std::string build_gif_filter(int fps, int width) {
-  return "fps=" + std::to_string(fps) + ",scale=" + std::to_string(width) +
-         ":-1:flags=lanczos";
+  return std::format("fps={},scale={}:-1:flags=lanczos", fps, width);
 }
 
 // === Build thumbnail filter ===
 inline std::string build_thumbnail_filter(int fps) {
-  return "fps=1/" + std::to_string(fps);
+  return std::format("fps=1/{}", fps);
 }
 
 // === Build crop filter ===
 inline std::string build_crop_filter(int w, int h, int x, int y) {
-  return "crop=" + std::to_string(w) + ":" + std::to_string(h) + ":" +
-         std::to_string(x) + ":" + std::to_string(y);
+  return std::format("crop={}:{:{}d}:{:{}d}:{}", w, h, 0, x, 0, y);
 }
 
 // === Build subtitle filter ===
@@ -985,7 +1214,7 @@ inline std::string build_subtitle_filter(std::string_view srt_path) {
       safe += '\\';
     safe += c;
   }
-  return "subtitles=" + safe;
+  return std::format("subtitles={}", safe);
 }
 
 // === Build normalize filter ===

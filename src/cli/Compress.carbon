@@ -56,37 +56,55 @@ fn Run() -> i32 {
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
   ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  // Codec selection: custom or preset
   let vcodec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
-  let crf: Cpp.std.string = Cpp.cli.get_flag_value("--crf");
-  let preset: Cpp.std.string = Cpp.cli.get_flag_value("--preset");
-  let abr: Cpp.std.string = Cpp.cli.get_flag_value("--bitrate");
   if (Cpp.str_ne(vcodec, "")) {
+    // Custom codec: respect --crf and --preset overrides
+    let crf: Cpp.std.string = Cpp.cli.get_flag_value("--crf");
+    let pset: Cpp.std.string = Cpp.cli.get_flag_value("--preset");
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), vcodec);
     if (Cpp.str_ne(crf, "")) { ArgsBuilder.AddFlagValue(Constants.FlagCrf(), crf); }
-    if (Cpp.str_ne(preset, "")) { ArgsBuilder.AddFlagValue(Constants.FlagPreset(), preset); }
-  } else if (Cpp.cli.has_flag("--web") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx264());
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetWebCrf());
-    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetWebPreset());
-  } else if (Cpp.cli.has_flag("--mobile") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx264());
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetMobileCrf());
-    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetMobilePreset());
-  } else if (Cpp.cli.has_flag("--streaming") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx265());
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetStreamingCrf());
-    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetStreamingPreset());
-  } else if (Cpp.cli.has_flag("--jxl") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Cpp.strh.make("libjxl"));
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Cpp.strh.make("0"));
-  } else if (Cpp.cli.has_flag("--av1") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibsvtav1());
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetAv1Crf());
-    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetAv1Preset());
+    if (Cpp.str_ne(pset, "")) { ArgsBuilder.AddFlagValue(Constants.FlagPreset(), pset); }
   } else {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx265());
-    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetCompressCrf());
-    ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetCompressPreset());
+    // Preset: build all args from C++ helper
+    let fmt: Cpp.std.string = Cpp.format_for_ext(output);
+    var pname: Cpp.std.string = Cpp.strh.make("compress");
+    if (Cpp.cli.has_flag("--web") == 1) { pname = Cpp.strh.make("web"); }
+    else if (Cpp.cli.has_flag("--mobile") == 1) { pname = Cpp.strh.make("mobile"); }
+    else if (Cpp.cli.has_flag("--streaming") == 1) { pname = Cpp.strh.make("streaming"); }
+    else if (Cpp.cli.has_flag("--av1") == 1) { pname = Cpp.strh.make("av1"); }
+    else if (Cpp.cli.has_flag("--jxl") == 1) { pname = Cpp.strh.make("jxl"); }
+    let preset_args: Cpp.std.string = Cpp.build_compress_args(pname, fmt);
+    // Tokenize and add each arg
+    let toks: Cpp.std.string = preset_args;
+    // Simple space-separated add
+    var pos: u64 = 0;
+    while (pos < toks.size()) {
+      let space: u64 = toks.find(" ", pos);
+      if (space == Constants.NotFoundIndex()) {
+        ArgsBuilder.Add(toks.substr(pos));
+        break;
+      }
+      let tok: Cpp.std.string = toks.substr(pos, space - pos);
+      ArgsBuilder.Add(tok);
+      pos = space + 1;
+    }
+  }
+  // Add normalization filters for h264/h265
+  let enc: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
+  if (Cpp.str_ne(enc, "")) {
+    let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
+    let pix: Cpp.std.string = Cpp.probe_pix_fmt(ffprobe, input);
+    let w: i32 = Cpp.probe_width(ffprobe, input);
+    let h: i32 = Cpp.probe_height(ffprobe, input);
+    let vf: Cpp.std.string = Cpp.normalize_video_filters(pix, w, h, enc);
+    if (Cpp.str_ne(vf, "")) { ArgsBuilder.AddFlagValue(Constants.FlagFilter(), vf); }
+  }
+  // Audio downmix to stereo for web/mobile
+  if (Cpp.cli.has_flag("--web") == 1 or Cpp.cli.has_flag("--mobile") == 1) {
+    let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
+    let ch: i32 = Cpp.probe_channels(ffprobe, input);
+    if (ch > 2) { ArgsBuilder.AddFlagValue(Cpp.strh.make("-ac"), Cpp.strh.make("2")); }
   }
   let acodec: Cpp.std.string = Cpp.cli.get_flag_value("--audio-codec");
   if (Cpp.str_ne(acodec, "")) {
@@ -94,14 +112,10 @@ fn Run() -> i32 {
   } else {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecAac());
   }
+  // Audio bitrate: override preset default
+  let abr: Cpp.std.string = Cpp.cli.get_flag_value("--bitrate");
   if (Cpp.str_ne(abr, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), abr);
-  } else if (Cpp.cli.has_flag("--mobile") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetMobileAudioBr());
-  } else if (Cpp.cli.has_flag("--streaming") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetStreamingAudioBr());
-  } else {
-    ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetCompressAudioBr());
   }
   let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
   if (Cpp.str_ne(vbr, "")) {
@@ -117,6 +131,10 @@ fn Run() -> i32 {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
+  }
+  // Strip subtitles for web/mobile presets or explicit --no-subs
+  if (Cpp.cli.has_flag("--no-subs") == 1 or Cpp.cli.has_flag("--web") == 1 or Cpp.cli.has_flag("--mobile") == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagSn(), Cpp.strh.make(""));
   }
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();

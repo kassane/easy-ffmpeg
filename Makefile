@@ -32,7 +32,7 @@ all: $(BIN)
 
 # Bootstrap: compile build.carbon → ./build
 $(BUILD_BIN): $(BUILD_SRC) $(BUILD_DEPS)
-	$(CARBON) build $(BUILD_SRC) src/core/*.carbon --output=$(BUILD_BIN) -- -std=c++23 -Isrc/core
+	$(CARBON) build $(BUILD_SRC) src/core/*.carbon --output=$(BUILD_BIN) -- -std=c++23 -Isrc/core -Wall -Wextra -fstack-protector-strong -D_FORTIFY_SOURCE=2
 
 # Main binary: delegate to ./build (now guaranteed up-to-date)
 $(BIN): $(BUILD_BIN) $(ALL_SRC)
@@ -58,6 +58,14 @@ docs:
 check: $(BUILD_BIN)
 	./$(BUILD_BIN) --check
 
+test: $(BUILD_BIN)
+	@echo "Running shell test suite..."
+	@bash tests/test_dry_run.sh
+	@bash tests/test_security.sh
+	@bash tests/test_exit_codes.sh
+	@bash tests/smoke.sh
+	@echo "All tests passed."
+
 ci: $(BUILD_BIN)
 	./$(BUILD_BIN) --ci
 
@@ -72,6 +80,7 @@ help:
 	@echo "  format  Carbon source only"
 	@echo "  clang-format  C++ headers only"
 	@echo "  docs    Auto-update markdown"
+	@echo "  test    Run shell test suite"
 	@echo "  check   Validation checks"
 	@echo "  ci      Full CI pipeline"
 	@echo "  once    Build + verify one-shot"

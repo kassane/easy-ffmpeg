@@ -98,10 +98,6 @@ OUT=$($BIN convert $FIX /tmp/o.mp4 --dry-run 2>&1)
 check_contains "smart remux: -c:v copy" "-c:v copy" "$OUT"
 check_contains "smart remux: -c:a copy" "-c:a copy" "$OUT"
 
-echo ""
-echo "Results: $PASS passed, $FAIL failed"
-[ $FAIL -eq 0 ] || exit 1
-
 echo "=== concat ==="
 OUT=$($BIN concat $FIX $FIX /tmp/o.mp4 --copy --dry-run 2>&1)
 check_contains "concat --copy: -c:v copy" "-c:v copy" "$OUT"
@@ -124,9 +120,9 @@ OUT=$($BIN thumbnail $FIX /tmp/o.jpg --dry-run 2>&1)
 check_contains "thumbnail: -vframes 1" "-vframes 1" "$OUT"
 
 OUT=$($BIN thumbnail $FIX /tmp/o.jpg --time 00:01:30 --dry-run 2>&1)
+check_contains "thumbnail --time: -ss 00:01:30" "-ss 00:01:30" "$OUT"
 OUT=$($BIN thumbnail $FIX /tmp/o.webp --every 2 --webp --dry-run 2>&1)
 check_contains "thumbnail --webp: libwebp_anim" "libwebp_anim" "$OUT"
-check_contains "thumbnail --time: -ss 00:01:30" "-ss 00:01:30" "$OUT"
 OUT=$($BIN thumbnail $FIX /tmp/o.webp --every 2 --webp --dry-run 2>&1)
 check_contains "thumbnail --webp: libwebp_anim" "libwebp_anim" "$OUT"
 
@@ -188,3 +184,7 @@ check_contains "crop with offset" "crop=640:480:100:50" "$OUT"
 echo "=== colordetect ==="
 OUT=$($BIN colordetect $FIX --dry-run 2>&1)
 check_contains "colordetect: colordetect filter" "colordetect" "$OUT"
+
+echo ""
+echo "Results: $PASS passed, $FAIL failed"
+[ $FAIL -eq 0 ] || exit 1

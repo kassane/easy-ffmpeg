@@ -20,7 +20,7 @@ $ easy-ffmpeg probe movie.mp4 --json
 
 | Command | What | Example |
 |---------|------|---------|
-| `convert` | Format conversion + **smart remux** | `convert in.mkv out.mp4 --codec h264` |
+| `convert` | Format conversion + **smart remux** (auto-copies compatible streams) | `convert in.mkv out.mp4` |
 | `compress` | Encode with quality presets | `compress in.mp4 out.mp4 --web` |
 | `trim` | Cut a segment | `trim in.mp4 out.mp4 --start 00:01:00 --duration 30` |
 | `resize` | Scale dimensions | `resize in.mp4 out.mp4 --scale hd` |
@@ -47,6 +47,8 @@ Every command supports `--dry-run` — prints the exact ffmpeg command without e
 | `--mobile` | H.264 | 26 | AAC 96k | scale 720p |
 | `--streaming` | H.265 | 18 | AAC 256k | — |
 | `--compress` | H.265 | 28 | AAC 128k | small file |
+
+All presets auto-strip subtitles. Use `--no-subs` explicitly with `compress` or `convert` to drop subtitle tracks.
 
 ### Scale presets (`resize`)
 

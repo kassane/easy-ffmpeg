@@ -7,7 +7,7 @@
 | Input | Validation |
 |-------|-----------|
 | Input path (`-i X`) | `ValidatePath(X)` — rejects `..`, `'`, `\n`, `\r`, `\0`, non-regular files |
-| Output path | same as input path |
+| Output path | User-controlled (expected for CLI tool). Only input paths validated via `ValidatePath()`.
 | Time (`--start 00:01:00`, `--duration 30s`) | Parsed via `Cpp.process.parse_time_ms` in Validate; numeric-only grammar |
 | Codec (`--codec h264`) | `Validate.IsAllowedCodec` matches allow-list, never free-text |
 | Preset / bitrate / crf | Presets defined in `Constants.carbon` (PresetWeb/Mobile/Streaming/Compress) |

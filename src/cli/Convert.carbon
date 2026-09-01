@@ -40,36 +40,57 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  ArgsBuilder.StartFfmpeg();
-  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  var codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
-  if (Cpp.str_ne(codec, "")) {
-    // Map common aliases to ffmpeg encoder names
-    if (Cpp.str_eq(codec, Cpp.strh.make("h265"))) {
-      codec = Cpp.strh.make(Constants.CodecHevc());
-    }
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), codec);
-  } else {
-    let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
-    let codecs: Cpp.std.string = Cpp.probe_codecs(ffprobe, input);
-    let sep: u64 = codecs.find(",");
-    if (sep != Constants.NotFoundIndex()) {
-      let vcodec: Cpp.std.string = codecs.substr(0, sep);
-      let acodec: Cpp.std.string = codecs.substr(sep + 1);
-      let v_codec_h: Cpp.std.string = Cpp.strh.make(Constants.CodecH264());
-      let aac: Cpp.std.string = Cpp.strh.make(Constants.CodecAac());
-      if (Cpp.str_eq(vcodec, v_codec_h)) {
-        if (Cpp.str_eq(acodec, aac)) {
-          ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
-          ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
-        }
-      }
-    }
-  }
   if (Cpp.str_eq(output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
+  }
+  ArgsBuilder.StartFfmpeg();
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  var codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
+
+  if (Cpp.str_ne(codec, "")) {
+    // User specified codec — map aliases
+    if (Cpp.str_eq(codec, Cpp.strh.make("h265"))) { codec = Cpp.strh.make(Constants.CodecHevc()); }
+    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), codec);
+  } else {
+    // Smart remux: probe codecs, check container compatibility
+    let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
+    let vcodec: Cpp.std.string = Cpp.probe_stream_codec(ffprobe, input, "v:0");
+    let acodec: Cpp.std.string = Cpp.probe_stream_codec(ffprobe, input, "a:0");
+    let fmt: Cpp.std.string = Cpp.format_for_ext(output);
+    let v_ok: i32 = Cpp.video_compatible(vcodec, fmt);
+    let a_ok: i32 = Cpp.audio_compatible(acodec, fmt);
+    if (v_ok == 1 and a_ok == 1) {
+      // All streams compatible — copy (zero quality loss, instant)
+      ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
+      ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
+    } else if (v_ok == 1) {
+      // Video compatible, audio needs re-encode
+      ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
+    } else if (a_ok == 1) {
+      // Audio compatible, video needs re-encode
+      ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
+    }
+    // Both incompatible — let ffmpeg use defaults (re-encode everything)
+  }
+
+  // Add normalization filters for h264/h265 output
+  var enc: Cpp.std.string = Cpp.strh.make(Constants.DefaultVideoEncoder());
+  if (Cpp.str_ne(codec, "")) { enc = codec; }
+  if (Cpp.str_ne(enc, Constants.FlagCodecCopy())) {
+    let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
+    let pix: Cpp.std.string = Cpp.probe_pix_fmt(ffprobe, input);
+    let w: i32 = Cpp.probe_width(ffprobe, input);
+    let h: i32 = Cpp.probe_height(ffprobe, input);
+    let vf: Cpp.std.string = Cpp.normalize_video_filters(pix, w, h, enc);
+    if (Cpp.str_ne(vf, "")) {
+      ArgsBuilder.AddFlagValue(Constants.FlagFilter(), vf);
+    }
+  }
+
+  if (Cpp.cli.has_flag("--no-subs") == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagSn(), Cpp.strh.make(""));
   }
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();

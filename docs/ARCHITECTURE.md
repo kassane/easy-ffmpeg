@@ -7,7 +7,7 @@
                                        │ argv[1] == Constants.Cmd*
                      ┌─────────────────┼─────────────────┐
                      ▼                 ▼                 ▼
-              CliConvert        CliCompress        CliTrim        ... (17 files in src/cli/*.carbon)
+              CliConvert        CliCompress        CliTrim        ... (18 files in src/cli/*.carbon)
                      │                 │                 │
                      └─────────────────┼─────────────────┘
                                        ▼
@@ -46,6 +46,43 @@
 | `Validate.carbon` | `Exists`, `ParseTime`, `IsAllowedCodec` | builder logic |
 | `cli/Convert.carbon` etc | parse own flags via `Cpp.cli`, call `ArgsBuilder.AddFlagValue(Constants.X(), Y)` | raw `"-c:v"` literals |
 | `main.carbon` | dispatch `if (arg == Constants.CmdConvert)` | builder/exec duplication |
+
+## Smart Remux (ported from Crystal reference)
+
+`convert` auto-copies streams when both video and audio are compatible with the target container:
+
+1. Probes input codecs via `ffprobe` (`probe_stream_codec()`)
+2. Infers output format from extension (`format_for_ext()`)
+3. Checks container compatibility tables (`video_compatible()`, `audio_compatible()`)
+4. If both compatible → `-c copy` (instant, zero quality loss)
+5. If only one compatible → copies that stream, re-encodes the other
+6. If neither compatible → re-encodes everything with ffmpeg defaults
+
+### Container Compatibility
+
+| Container | Video | Audio |
+|-----------|-------|-------|
+| mp4 | h264, hevc, mpeg4, av1 | aac, mp3, ac3, opus, flac |
+| matroska | h264, hevc, vp8, vp9, av1, theora, prores, ffv1 | aac, mp3, ac3, dts, flac, opus, vorbis |
+| webm | vp8, vp9, av1 | opus, vorbis |
+| mov | h264, hevc, prores, mpeg4, mjpeg | aac, mp3, ac3, alac, flac |
+| mpegts | h264, hevc, mpeg2video | aac, mp3, ac3 |
+
+Implementation: `std::unordered_map<format, std::unordered_set<codec>>` — O(1) lookup, data-driven (no if-chains).
+
+## Per-Format Presets
+
+`compress --web/--mobile/--streaming` adapts codec to output format via C++ `build_compress_args()` — single function call returns all codec/crf/preset/audio args for a given preset+format combo:
+- `.webm` → `libvpx-vp9` (VP9)
+- `.mp4`/`.mkv` → `libx264` (H.264) or `libx265` (H.265)
+
+`--no-subs` strips subtitle tracks (auto-applied for `--web`/`--mobile`).
+
+## Video Normalization
+
+For h264/h265 output, auto-adds:
+- `format=yuv420p` if source pixel format is not yuv420p/yuv420p10le
+- `scale=trunc(iw/2)*2:trunc(ih/2)*2` if source dimensions are odd
 
 ## Data Flow Example
 
