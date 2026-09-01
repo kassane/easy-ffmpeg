@@ -27,7 +27,7 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
   ```
 - Prelude has **no `Vector`, `String.format`, or heap allocator**. Use `Array(String, MaxArgs)` + `len` (ponytail comment marks the ceiling). No `match` — dispatch with `if`.
 - **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` — you **must** annotate: `let x: i32 = 42;`. Every `let` needs an explicit type on 2026.08.29 nightly.
-- Exec goes through `Cpp.system` in `src/core/Process.carbon` — the ONLY place. No `libav*` import yet (0.1 nightly can't safely import `avcodec.h` templates).
+- Exec goes through `process::run_str()` (fork+execvp, no shell) in `src/core/ffi_helper.hpp` — the ONLY place. No `libav*` import yet (0.1 nightly can't safely import `avcodec.h` templates).
 - **Every magic string/number lives in `src/core/Constants.carbon`** — `scripts/check-no-magic.sh` fails builds otherwise. Grep before adding.
 
 ## Workflow rules (from docs/RULES.md)
