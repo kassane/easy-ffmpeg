@@ -53,7 +53,9 @@ jobs:
       
       - name: Build application
         run: |
-          carbon build build.carbon \
+          carbon build \
+            build.carbon \
+            src/core/ArgsBuilder.carbon \
             --output=build \
             -- -std=c++17 -Isrc/core
           ./build --verbose

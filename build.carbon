@@ -1,6 +1,7 @@
 // build.carbon — single build entry point.
-// Build: carbon build build.carbon --output=build -- -std=c++17 -Isrc/core
+// Build: carbon build build.carbon src/core/ArgsBuilder.carbon --output=build -- -std=c++17 -Isrc/core
 // Usage: ./build [--once|--ci|--clean|--format|--check|--help|--version|-v]
+import ArgsBuilder library "core/args";
 import Core library "io";
 import Core library "prelude/types";
 import Cpp library "ffi_helper.hpp";
@@ -35,22 +36,28 @@ fn Run() {
   if (Cpp.cli.has_flag("--verbose") == 1) { verbose = 1; }
 
   let tc: Cpp.std.string = Cpp.resolve_carbon();
-  let fmt: Cpp.std.string = Cpp.strh.concat3(tc, " format src/**/*.carbon", "");
-  let bld: Cpp.std.string = Cpp.strh.concat3(tc,
-    " build src/main.carbon src/core/*.carbon src/cli/*.carbon --output=easy-ffmpeg -- -std=c++17 -Isrc/core", "");
 
   if (Cpp.cli.arg_matches(1, "--clean") == 1) {
     Core.PrintStr("Cleaning...\n");
     if (verbose == 1) { Core.PrintStr("$ rm -f easy-ffmpeg /tmp/easy-ffmpeg\n"); }
-    Cpp.run_shell("rm -f easy-ffmpeg /tmp/easy-ffmpeg");
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Cpp.strh.make("rm"));
+    ArgsBuilder.Add(Cpp.strh.make("-f"));
+    ArgsBuilder.Add(Cpp.strh.make("easy-ffmpeg"));
+    ArgsBuilder.Add(Cpp.strh.make("/tmp/easy-ffmpeg"));
+    ArgsBuilder.RunShell();
     Core.PrintStr("done\n");
     Cpp.cli_exit(0);
     return;
   }
 
   if (Cpp.cli.arg_matches(1, "--format") == 1) {
-    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(fmt); Core.PrintStr("\n"); }
-    Cpp.run_shell(fmt);
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(tc);
+    ArgsBuilder.Add(Cpp.strh.make("format"));
+    ArgsBuilder.Add(Cpp.strh.make("src/**/*.carbon"));
+    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
+    ArgsBuilder.RunShell();
     Cpp.cli_exit(0);
     return;
   }
@@ -64,7 +71,12 @@ fn Run() {
 
   if (Cpp.cli.arg_matches(1, "--ci") == 1) {
     Core.PrintStr("[1/4] format\n");
-    Cpp.run_shell(fmt);
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(tc);
+    ArgsBuilder.Add(Cpp.strh.make("format"));
+    ArgsBuilder.Add(Cpp.strh.make("src/**/*.carbon"));
+    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
+    ArgsBuilder.RunShell();
     Core.PrintStr("[2/4] check-no-magic\n");
     if (Cpp.build.check_no_magic() != 0) {
       Core.PrintStr("\x1B[31m[ci] FAILED\x1B[0m\n");
@@ -76,7 +88,18 @@ fn Run() {
       Cpp.cli_exit(1); return;
     }
     Core.PrintStr("[4/4] build\n");
-    if (Cpp.run_shell(bld) != 0) {
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(tc);
+    ArgsBuilder.Add(Cpp.strh.make("build"));
+    ArgsBuilder.Add(Cpp.strh.make("src/main.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("src/core/*.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
+    ArgsBuilder.Add(Cpp.strh.make("--"));
+    ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+    ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
+    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
+    if (ArgsBuilder.RunShell() != 0) {
       Core.PrintStr("\x1B[31m[ci] FAILED\x1B[0m\n");
       Cpp.cli_exit(1); return;
     }
@@ -87,22 +110,57 @@ fn Run() {
 
   if (Cpp.cli.arg_matches(1, "--once") == 1) {
     Core.PrintStr("Building...\n");
-    if (Cpp.run_shell(bld) != 0) {
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(tc);
+    ArgsBuilder.Add(Cpp.strh.make("build"));
+    ArgsBuilder.Add(Cpp.strh.make("src/main.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("src/core/*.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
+    ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
+    ArgsBuilder.Add(Cpp.strh.make("--"));
+    ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+    ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
+    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
+    if (ArgsBuilder.RunShell() != 0) {
       Core.PrintStr("\x1B[31m[red] build failed\x1B[0m\n");
       Cpp.cli_exit(1); return;
     }
     Core.PrintStr("Testing...\n");
-    Cpp.run_shell("./easy-ffmpeg convert tests/fixtures/in.mp4 /tmp/out.mp4 --dry-run");
-    Cpp.run_shell("./easy-ffmpeg compress tests/fixtures/in.mp4 /tmp/out.mp4 --web --dry-run");
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Cpp.strh.make("./easy-ffmpeg"));
+    ArgsBuilder.Add(Cpp.strh.make("convert"));
+    ArgsBuilder.Add(Cpp.strh.make("tests/fixtures/in.mp4"));
+    ArgsBuilder.Add(Cpp.strh.make("/tmp/out.mp4"));
+    ArgsBuilder.Add(Cpp.strh.make("--dry-run"));
+    ArgsBuilder.RunShell();
+
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Cpp.strh.make("./easy-ffmpeg"));
+    ArgsBuilder.Add(Cpp.strh.make("compress"));
+    ArgsBuilder.Add(Cpp.strh.make("tests/fixtures/in.mp4"));
+    ArgsBuilder.Add(Cpp.strh.make("/tmp/out.mp4"));
+    ArgsBuilder.Add(Cpp.strh.make("--web"));
+    ArgsBuilder.Add(Cpp.strh.make("--dry-run"));
+    ArgsBuilder.RunShell();
     Core.PrintStr("\x1B[32m[green] ok\x1B[0m\n");
     Cpp.cli_exit(0);
     return;
   }
 
   // Default: always rebuild
-  if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(bld); Core.PrintStr("\n"); }
   Core.PrintStr("Building...\n");
-  let rc: i32 = Cpp.run_shell(bld);
+  ArgsBuilder.Clear();
+  ArgsBuilder.Add(tc);
+  ArgsBuilder.Add(Cpp.strh.make("build"));
+  ArgsBuilder.Add(Cpp.strh.make("src/main.carbon"));
+  ArgsBuilder.Add(Cpp.strh.make("src/core/*.carbon"));
+  ArgsBuilder.Add(Cpp.strh.make("src/cli/*.carbon"));
+  ArgsBuilder.Add(Cpp.strh.make("--output=easy-ffmpeg"));
+  ArgsBuilder.Add(Cpp.strh.make("--"));
+  ArgsBuilder.Add(Cpp.strh.make("-std=c++17"));
+  ArgsBuilder.Add(Cpp.strh.make("-Isrc/core"));
+  if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(ArgsBuilder.ToSystemCmd()); Core.PrintStr("\n"); }
+  let rc: i32 = ArgsBuilder.RunShell();
   if (rc == 0) { Core.PrintStr("\x1B[32m[green] build ok\x1B[0m\n"); }
   Cpp.cli_exit(rc);
 }

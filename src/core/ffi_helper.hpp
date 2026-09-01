@@ -5,6 +5,13 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#endif
+#if __has_include(<charconv>)
+#include <charconv>
+#endif
 #ifdef _WIN32
 #include <io.h>
 #include <process.h>
@@ -18,13 +25,10 @@
 #endif
 
 namespace process {
-// Safe exec: fork+execvp on POSIX, _spawnvp on Windows.
-[[nodiscard]] inline int run_str(std::string_view cmd) {
-  std::string s(cmd);
+inline std::vector<std::string> tokenize(std::string_view cmd) {
   std::vector<std::string> toks;
   std::string cur;
-  for (size_t i = 0; i < s.size(); i++) {
-    char c = s[i];
+  for (char c : cmd) {
     if (c == ' ' || c == '\t') {
       if (!cur.empty()) {
         toks.push_back(cur);
@@ -36,12 +40,23 @@ namespace process {
   }
   if (!cur.empty())
     toks.push_back(cur);
-  if (toks.empty())
-    return -1;
+  return toks;
+}
+
+inline std::vector<const char *> to_argv(const std::vector<std::string> &toks) {
   std::vector<const char *> argv(toks.size() + 1);
   for (size_t i = 0; i < toks.size(); i++)
     argv[i] = toks[i].c_str();
   argv[toks.size()] = nullptr;
+  return argv;
+}
+
+// Safe exec: fork+execvp on POSIX, _spawnvp on Windows.
+[[nodiscard]] inline int run_str(std::string_view cmd) {
+  auto toks = tokenize(cmd);
+  if (toks.empty())
+    return -1;
+  auto argv = to_argv(toks);
 #ifdef _WIN32
   // Windows: _spawnvp blocks until child exits (same semantics as waitpid)
   intptr_t rc =
@@ -62,9 +77,11 @@ namespace process {
   return -1;
 #endif
 }
+
 [[nodiscard]] inline bool exists(std::string_view path) {
-#ifdef _WIN32
-  return (_access(std::string(path).c_str(), 0) == 0);
+#if __has_include(<filesystem>)
+  std::error_code ec;
+  return fs::exists(path, ec);
 #else
   struct stat st;
   return (stat(std::string(path).c_str(), &st) == 0);
@@ -82,8 +99,11 @@ namespace process {
     if (c == '\'' || c == '\n' || c == '\r' || c == '\0')
       return 1;
   }
-#ifdef _WIN32
-  if (_access(p.c_str(), 0) != 0)
+#if __has_include(<filesystem>)
+  std::error_code ec;
+  if (!fs::exists(p, ec))
+    return 2;
+  if (!fs::is_regular_file(p, ec))
     return 2;
 #else
   struct stat st;
@@ -111,31 +131,13 @@ namespace process {
   int pipefd[2];
   if (pipe(pipefd) < 0)
     return "";
-  std::string s(cmd);
-  std::vector<std::string> toks;
-  std::string cur;
-  for (size_t i = 0; i < s.size(); i++) {
-    char c = s[i];
-    if (c == ' ' || c == '\t') {
-      if (!cur.empty()) {
-        toks.push_back(cur);
-        cur.clear();
-      }
-    } else {
-      cur += c;
-    }
-  }
-  if (!cur.empty())
-    toks.push_back(cur);
+  auto toks = tokenize(cmd);
   if (toks.empty()) {
     close(pipefd[0]);
     close(pipefd[1]);
     return "";
   }
-  std::vector<const char *> argv(toks.size() + 1);
-  for (size_t i = 0; i < toks.size(); i++)
-    argv[i] = toks[i].c_str();
-  argv[toks.size()] = nullptr;
+  auto argv = to_argv(toks);
   pid_t pid = fork();
   if (pid < 0) {
     close(pipefd[0]);
@@ -270,33 +272,94 @@ inline int is_dry_run() {
 }
 } // namespace cli
 
-// === Build checks (C++ replacements for .sh scripts) ===
+// === Build checks (pure C++17, no shell/grep) ===
 namespace build {
-[[nodiscard]] inline int check_no_magic() {
-  std::string cmd =
-      "grep -rn "
-      "'\"\\-c:v\"\\|\"\\-b:v\"\\|\"\\-ss\"\\|\"\\-t\"\\|\"h264\"\\|\"aac\"\\|"
-      "\"mp4\"\\|\"libx264\"' "
-      "src --include='*.carbon' --exclude='Constants.carbon' | grep -v '//' | "
-      "grep -v 'Core.PrintStr' 2>/dev/null || true";
-  FILE *p = popen(cmd.c_str(), "r");
-  std::vector<std::string> hits;
-  if (p) {
-    char buf[512];
-    while (fgets(buf, sizeof(buf), p))
-      hits.push_back(buf);
-    pclose(p);
+// Read all lines from a .carbon file, skipping Constants.carbon.
+// Returns lines as vector of (filename:linenum:content).
+inline std::vector<std::string> read_carbon_src() {
+  std::vector<std::string> lines;
+#if __has_include(<filesystem>)
+  for (auto &entry : fs::recursive_directory_iterator("src")) {
+    if (!entry.is_regular_file())
+      continue;
+    auto ext = entry.path().extension().string();
+    if (ext != ".carbon")
+      continue;
+    if (entry.path().filename() == "Constants.carbon")
+      continue;
+    FILE *f = fopen(entry.path().c_str(), "r");
+    if (!f)
+      continue;
+    char buf[4096];
+    int lineno = 0;
+    while (fgets(buf, sizeof(buf), f)) {
+      lineno++;
+      std::string line(buf);
+      // strip trailing newline
+      while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+        line.pop_back();
+      lines.push_back(entry.path().string() + ":" + std::to_string(lineno) +
+                      ":" + line);
+    }
+    fclose(f);
   }
-  std::string cmd2 =
-      "grep -rnE '(^|[^A-Za-z_])(23|1280|720|192000|2500|64)([^A-Za-z_]|$)' "
-      "src --include='*.carbon' --exclude='Constants.carbon' | grep -v '//' | "
-      "grep -v 'Core.PrintStr' | grep -v 'Constants\\.' 2>/dev/null || true";
-  FILE *p2 = popen(cmd2.c_str(), "r");
-  if (p2) {
-    char buf[512];
-    while (fgets(buf, sizeof(buf), p2))
-      hits.push_back(buf);
-    pclose(p2);
+#endif
+  return lines;
+}
+
+[[nodiscard]] inline int check_no_magic() {
+  auto lines = read_carbon_src();
+  std::vector<std::string> hits;
+  // Magic string literals that must only appear in Constants.carbon
+  const char *magic_strs[] = {"\"-c:v\"", "\"-b:v\"", "\"-ss\"", "\"-t\"",
+                              "\"h264\"", "\"aac\"",  "\"mp4\"", "\"libx264\""};
+  // Magic integer literals that must only appear in Constants.carbon
+  const char *magic_nums[] = {"23", "1280", "720", "192000", "2500", "64"};
+  for (auto &line : lines) {
+    // Extract the source content (after third colon)
+    size_t c1 = line.find(':');
+    if (c1 == std::string::npos)
+      continue;
+    size_t c2 = line.find(':', c1 + 1);
+    if (c2 == std::string::npos)
+      continue;
+    std::string content = line.substr(c2 + 1);
+    // Skip comment lines
+    size_t first_non_space = content.find_first_not_of(" \t");
+    if (first_non_space != std::string::npos &&
+        content.substr(first_non_space, 2) == "//")
+      continue;
+    // Skip help string lines
+    if (content.find("Core.PrintStr") != std::string::npos)
+      continue;
+    // Check magic strings
+    for (auto *pat : magic_strs) {
+      if (content.find(pat) != std::string::npos) {
+        hits.push_back(line + "\n");
+        goto next_line;
+      }
+    }
+    // Check magic numbers (word-bounded)
+    for (auto *num : magic_nums) {
+      size_t pos = 0;
+      while ((pos = content.find(num, pos)) != std::string::npos) {
+        // Check word boundaries (reject letters, digits, underscores — like
+        // grep's [^A-Za-z_])
+        auto is_id_char = [](char c) -> bool {
+          return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
+                 (c >= 'a' && c <= 'z') || c == '_';
+        };
+        bool left_ok = (pos == 0) || !is_id_char(content[pos - 1]);
+        size_t end = pos + strlen(num);
+        bool right_ok = (end >= content.size()) || !is_id_char(content[end]);
+        if (left_ok && right_ok) {
+          hits.push_back(line + "\n");
+          goto next_line;
+        }
+        pos += strlen(num);
+      }
+    }
+  next_line:;
   }
   if (!hits.empty()) {
     fprintf(stderr, "Magic literal(s) outside src/core/Constants.carbon:\n");
@@ -307,25 +370,31 @@ namespace build {
   printf("[check-no-magic] clean\n");
   return 0;
 }
+
 [[nodiscard]] inline int check_no_duplication() {
+  auto lines = read_carbon_src();
   int errors = 0;
-  auto count_grep = [&](const char *pat) -> int {
-    std::string cmd = std::string("grep -rn '") + pat +
-                      "' src/ --include='*.carbon' 2>/dev/null | wc -l";
-    FILE *p = popen(cmd.c_str(), "r");
+  auto count_occurrences = [&](const char *pat) -> int {
     int n = 0;
-    if (p) {
-      fscanf(p, "%d", &n);
-      pclose(p);
+    for (auto &line : lines) {
+      size_t c1 = line.find(':');
+      if (c1 == std::string::npos)
+        continue;
+      size_t c2 = line.find(':', c1 + 1);
+      if (c2 == std::string::npos)
+        continue;
+      std::string content = line.substr(c2 + 1);
+      if (content.find(pat) != std::string::npos)
+        n++;
     }
     return n;
   };
-  if (count_grep("fn Exec(") > 1) {
+  if (count_occurrences("fn Exec(") > 1) {
     fprintf(stderr, "Duplication: multiple fn Exec\n");
     errors = 1;
   }
-  if (count_grep("fn AddFlagValue") > 1) {
-    fprintf(stderr, "Duplication: multiple AddFlagValue\n");
+  if (count_occurrences("fn AddFlagValue") > 1) {
+    fprintf(stderr, "Duplication: multiple fn AddFlagValue\n");
     errors = 1;
   }
   if (!errors)
@@ -351,6 +420,10 @@ inline void argv_add_token(std::string_view t) {
 }
 inline std::string argv_build_cmd() {
   std::string r;
+  size_t total = 0;
+  for (auto &t : g_tokens)
+    total += t.size() + 1;
+  r.reserve(total);
   for (size_t i = 0; i < g_tokens.size(); i++) {
     if (i)
       r += " ";
@@ -383,6 +456,7 @@ inline std::string concat3(std::string_view a, std::string_view b,
 // === Escape text for ffmpeg drawtext filter ===
 inline std::string escape_drawtext(std::string_view text) {
   std::string result;
+  result.reserve(text.size() * 2);
   for (char c : text) {
     if (c == ':' || c == '\'' || c == '\\' || c == ';' || c == '%' ||
         c == '[' || c == ']')
@@ -460,19 +534,63 @@ inline std::string escape_drawtext(std::string_view text) {
 
 // === Cwd + Run ===
 inline std::string cwd() {
+#if __has_include(<filesystem>)
+  std::error_code ec;
+  auto p = fs::current_path(ec);
+  return ec ? "." : p.string();
+#else
   char buf[1024];
   if (getcwd(buf, sizeof(buf)))
     return std::string(buf);
   return ".";
-}
-[[nodiscard]] inline int run(std::string_view cmd) {
-  // Reuse process::run_str for safety (no shell injection)
-  return process::run_str(cmd);
+#endif
 }
 
-// Run command through shell (allows glob expansion, for build tool only)
-[[nodiscard]] inline int run_shell(std::string_view cmd) {
-  return std::system(std::string(cmd).c_str());
+// Quote a single argument for shell execution
+inline std::string shell_quote(std::string_view arg) {
+  bool need_quote = arg.find(' ') != std::string::npos ||
+                    arg.find('"') != std::string::npos ||
+                    arg.find('\'') != std::string::npos ||
+                    arg.find('\\') != std::string::npos;
+  if (!need_quote)
+    return std::string(arg);
+  std::string result = "\"";
+  for (char c : arg) {
+    if (c == '"' || c == '\\')
+      result += '\\';
+    result += c;
+  }
+  result += '"';
+  return result;
+}
+
+// Template: works with any container of string-like types (vector, array,
+// initializer_list). Properly quotes each argument.
+template <typename Container>
+[[nodiscard]] inline int run_shell(std::string_view app,
+                                   const Container &args) {
+  std::string cmd(app);
+  for (const auto &arg : args) {
+    cmd += " ";
+    cmd += shell_quote(std::string_view(arg));
+  }
+  return std::system(cmd.c_str());
+}
+
+// Execute accumulated tokens via shell (C++ FFI — uses g_tokens vector
+// directly)
+inline int argv_run_shell() {
+  if (g_tokens.empty())
+    return -1;
+  return run_shell(g_tokens[0], std::vector<std::string>(g_tokens.begin() + 1,
+                                                         g_tokens.end()));
+}
+
+// Execute accumulated tokens via fork+execvp (no shell, no glob)
+inline int argv_run_exec() {
+  if (g_tokens.empty())
+    return -1;
+  return process::run_str(argv_build_cmd());
 }
 
 // Run command and show progress bar by parsing ffmpeg stderr.
@@ -513,31 +631,13 @@ inline std::string cwd() {
   int pipefd[2];
   if (pipe(pipefd) < 0)
     return process::run_str(cmd);
-  std::string s(cmd);
-  std::vector<std::string> toks;
-  std::string cur;
-  for (size_t i = 0; i < s.size(); i++) {
-    char c = s[i];
-    if (c == ' ' || c == '\t') {
-      if (!cur.empty()) {
-        toks.push_back(cur);
-        cur.clear();
-      }
-    } else {
-      cur += c;
-    }
-  }
-  if (!cur.empty())
-    toks.push_back(cur);
+  auto toks = process::tokenize(cmd);
   if (toks.empty()) {
     close(pipefd[0]);
     close(pipefd[1]);
     return -1;
   }
-  std::vector<const char *> argv(toks.size() + 1);
-  for (size_t i = 0; i < toks.size(); i++)
-    argv[i] = toks[i].c_str();
-  argv[toks.size()] = nullptr;
+  auto argv = process::to_argv(toks);
   pid_t pid = fork();
   if (pid < 0) {
     close(pipefd[0]);
@@ -599,10 +699,19 @@ inline std::string cwd() {
   std::string raw = process::run_capture(cmd);
   if (raw.empty())
     return -1;
+  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
+    raw.pop_back();
+#if __has_include(<charconv>)
+  double val = 0;
+  auto [ptr, ec] = std::from_chars(raw.data(), raw.data() + raw.size(), val);
+  if (ec == std::errc())
+    return (long)(val * 1000);
+#else
   try {
     return (long)(std::stod(raw) * 1000);
   } catch (...) {
   }
+#endif
   return -1;
 }
 
@@ -616,15 +725,21 @@ inline std::string cwd() {
 
 // === String-to-int conversion (Carbon has no stoi) ===
 [[nodiscard]] inline int stoi(std::string s) {
+#if __has_include(<charconv>)
+  int val = 0;
+  auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), val);
+  return (ec == std::errc()) ? val : 0;
+#else
   try {
     return std::stoi(s);
   } catch (...) {
     return 0;
   }
+#endif
 }
 
 // === Validate string is numeric (digits, optional dot, optional leading -) ===
-[[nodiscard]] inline int validate_numeric(std::string s) {
+[[nodiscard]] constexpr int validate_numeric(std::string_view s) {
   if (s.empty())
     return 0;
   size_t start = 0;
@@ -672,6 +787,7 @@ inline std::string build_concat_list(const std::vector<std::string> &files) {
     return r;
   };
   std::string list;
+  list.reserve(files.size() * 30);
   for (auto &f : files) {
     list += "file '" + esc(f) + "'\n";
   }
@@ -721,8 +837,14 @@ inline std::string write_temp_file(std::string_view content,
 
 // === Remove temp file ===
 inline void remove_temp_file(const std::string &path) {
-  if (!path.empty())
+  if (!path.empty()) {
+#if __has_include(<filesystem>)
+    std::error_code ec;
+    fs::remove(path, ec);
+#else
     unlink(path.c_str());
+#endif
+  }
 }
 
 // === atempo chain builder (atempo only supports 0.5-2.0) ===
@@ -730,6 +852,7 @@ inline std::string atempo_chain(double factor) {
   if (factor <= 0)
     return "atempo=1.0";
   std::string chain;
+  chain.reserve(64);
   double remaining = factor;
   while (remaining > 2.0) {
     if (!chain.empty())
@@ -755,7 +878,10 @@ inline std::string atempo_chain(double factor) {
 inline std::string build_speed_filter_complex(std::string_view factor) {
   std::string f(factor);
   std::string audio = atempo_chain(std::stod(f));
-  return "[0:v]setpts=" + f + "*PTS[v];[0:a]" + audio + "[a]";
+  std::string result;
+  result.reserve(32 + f.size() + audio.size());
+  result = "[0:v]setpts=" + f + "*PTS[v];[0:a]" + audio + "[a]";
+  return result;
 }
 
 // === Build watermark overlay filter ===
@@ -799,6 +925,7 @@ inline std::string build_thumbnail_filter(int fps) {
 inline std::string build_subtitle_filter(std::string srt_path) {
   // Escape ffmpeg filter special chars in path
   std::string safe;
+  safe.reserve(srt_path.size() * 2);
   for (char c : srt_path) {
     if (c == '\\' || c == '\'' || c == ':' || c == '[' || c == ']')
       safe += '\\';

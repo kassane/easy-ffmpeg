@@ -63,6 +63,3 @@
 * No arg-parser library — hand-roll `while (i < argc) { if (arg == Constants.FlagX) ... }` in each `cli/*.carbon` but **share** the `Constants.FlagX` table.
 * `carbon build` takes `FILE... -- [<CLANG-ARG>... -- <EXTRA_CLANG_LINK_ARGS>...]` — extra link args go after `--`. For now no extra libs needed (only `system`).
 
-## Future (Phase 5)
-
-Swap `Process.Exec` for `interop/AvFormat.carbon` that `import Cpp library "libavformat/avformat.h"` and calls `Cpp.avformat_open_input`. CLI surface unchanged — builder still produces same logical args, but interpreted internally. Requires Carbon 0.2 template interop.

@@ -19,3 +19,11 @@ fn AddFlagValue(flag: Core.String, value: Core.String) {
 fn ToSystemCmd() -> Cpp.std.string {
   return Cpp.argv_build_cmd();
 }
+
+fn RunShell() -> i32 {
+  return Cpp.argv_run_shell();
+}
+
+fn RunExec() -> i32 {
+  return Cpp.argv_run_exec();
+}
