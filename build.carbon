@@ -17,6 +17,7 @@ fn ShowHelp() {
   Core.PrintStr("  --clean  Remove build artifacts\n");
   Core.PrintStr("  --format Format Carbon source files\n");
   Core.PrintStr("  --check  Validation checks only\n");
+  Core.PrintStr("  --verbose  Show commands before running\n");
   Core.PrintStr("  -v, --version  Show version\n");
   Core.PrintStr("  -h, --help     Show this help\n");
 }
@@ -29,10 +30,13 @@ fn Run() {
     return;
   }
   if (Cpp.cli.has_flag("--version") == 1) {
-    Core.PrintStr("easy-ffmpeg build 0.1.0\n");
+    Core.PrintStr("easy-ffmpeg build 0.2.0\n");
     Cpp.cli_exit(0);
     return;
   }
+
+  var verbose: i32 = 0;
+  if (Cpp.cli.has_flag("--verbose") == 1) { verbose = 1; }
 
   let tc: Cpp.std.string = Cpp.resolve_carbon();
   let fmt: Cpp.std.string = Cpp.strh.concat3(tc, " format src/**/*.carbon", "");
@@ -41,14 +45,16 @@ fn Run() {
 
   if (Cpp.cli.arg_matches(1, "--clean") == 1) {
     Core.PrintStr("Cleaning...\n");
-    Cpp.run("rm -f easy-ffmpeg /tmp/easy-ffmpeg");
+    if (verbose == 1) { Core.PrintStr("$ rm -f easy-ffmpeg /tmp/easy-ffmpeg\n"); }
+    Cpp.run_shell("rm -f easy-ffmpeg /tmp/easy-ffmpeg");
     Core.PrintStr("done\n");
     Cpp.cli_exit(0);
     return;
   }
 
   if (Cpp.cli.arg_matches(1, "--format") == 1) {
-    Cpp.run(fmt);
+    if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(fmt); Core.PrintStr("\n"); }
+    Cpp.run_shell(fmt);
     Cpp.cli_exit(0);
     return;
   }
@@ -62,7 +68,7 @@ fn Run() {
 
   if (Cpp.cli.arg_matches(1, "--ci") == 1) {
     Core.PrintStr("[1/4] format\n");
-    Cpp.run(fmt);
+    Cpp.run_shell(fmt);
     Core.PrintStr("[2/4] check-no-magic\n");
     if (Cpp.build.check_no_magic() != 0) {
       Core.PrintStr("\x1B[31m[ci] FAILED\x1B[0m\n");
@@ -74,7 +80,7 @@ fn Run() {
       Cpp.cli_exit(1); return;
     }
     Core.PrintStr("[4/4] build\n");
-    if (Cpp.run(bld) != 0) {
+    if (Cpp.run_shell(bld) != 0) {
       Core.PrintStr("\x1B[31m[ci] FAILED\x1B[0m\n");
       Cpp.cli_exit(1); return;
     }
@@ -85,26 +91,22 @@ fn Run() {
 
   if (Cpp.cli.arg_matches(1, "--once") == 1) {
     Core.PrintStr("Building...\n");
-    if (Cpp.run(bld) != 0) {
+    if (Cpp.run_shell(bld) != 0) {
       Core.PrintStr("\x1B[31m[red] build failed\x1B[0m\n");
       Cpp.cli_exit(1); return;
     }
     Core.PrintStr("Testing...\n");
-    Cpp.run("./easy-ffmpeg --dry-run convert test.mp4 out.mp4");
-    Cpp.run("./easy-ffmpeg --dry-run compress test.mp4 out.mp4 --web");
+    Cpp.run_shell("./easy-ffmpeg --dry-run convert test.mp4 out.mp4");
+    Cpp.run_shell("./easy-ffmpeg --dry-run compress test.mp4 out.mp4 --web");
     Core.PrintStr("\x1B[32m[green] ok\x1B[0m\n");
     Cpp.cli_exit(0);
     return;
   }
 
-  // Default: rebuild only if sources changed
-  if (Cpp.build.needs_rebuild("easy-ffmpeg") == 0) {
-    Core.PrintStr("\x1B[32m[green] up-to-date\x1B[0m\n");
-    Cpp.cli_exit(0);
-    return;
-  }
+  // Default: always rebuild
+  if (verbose == 1) { Core.PrintStr("$ "); Core.PrintStr(bld); Core.PrintStr("\n"); }
   Core.PrintStr("Building...\n");
-  let rc: i32 = Cpp.run(bld);
+  let rc: i32 = Cpp.run_shell(bld);
   if (rc == 0) { Core.PrintStr("\x1B[32m[green] build ok\x1B[0m\n"); }
   Cpp.cli_exit(rc);
 }

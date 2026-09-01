@@ -248,28 +248,6 @@ namespace build {
     if (!errors) printf("[check-no-duplication] clean\n");
     return errors;
   }
-
-  // Returns 1 if any source is newer than the output binary, 0 if up-to-date.
-  [[nodiscard]] inline int needs_rebuild(std::string_view output) {
-#ifdef _WIN32
-    if (_access(std::string(output).c_str(), 0) != 0) return 1;
-    return 0;  // Windows: skip mtime check (no stat on MinGW)
-#else
-    struct stat st;
-    if (stat(std::string(output).c_str(), &st) != 0) return 1;
-    time_t out_mtime = st.st_mtime;
-    const char* sources[] = {"src/main.carbon", "src/cli/AudioExtract.carbon",
-      "src/cli/Compress.carbon", "src/cli/Convert.carbon", "src/cli/Probe.carbon",
-      "src/cli/Resize.carbon", "src/cli/Trim.carbon", "src/core/ArgsBuilder.carbon",
-      "src/core/Constants.carbon", "src/core/Process.carbon", "src/core/Validate.carbon",
-      "src/core/ffi_helper.hpp", "build.carbon"};
-    for (auto src : sources) {
-      struct stat ss;
-      if (stat(src, &ss) == 0 && ss.st_mtime > out_mtime) return 1;
-    }
-    return 0;
-#endif
-  }
 }
 
 // === FFI functions called from Carbon ===
@@ -298,6 +276,16 @@ namespace strh {
   inline std::string concat3(std::string_view a, std::string_view b, std::string_view c) {
     return std::string(a) + std::string(b) + std::string(c);
   }
+}
+
+// === Escape text for ffmpeg drawtext filter ===
+inline std::string escape_drawtext(std::string_view text) {
+  std::string result;
+  for (char c : text) {
+    if (c == ':' || c == '\'' || c == '\\') result += '\\';
+    result += c;
+  }
+  return result;
 }
 
 // === Scale height mapper ===
@@ -355,6 +343,11 @@ inline std::string cwd() {
 [[nodiscard]] inline int run(std::string_view cmd) {
   // Reuse process::run_str for safety (no shell injection)
   return process::run_str(cmd);
+}
+
+// Run command through shell (allows glob expansion, for build tool only)
+[[nodiscard]] inline int run_shell(std::string_view cmd) {
+  return std::system(std::string(cmd).c_str());
 }
 
 // Run command and show progress bar by parsing ffmpeg stderr.
@@ -457,6 +450,150 @@ inline std::string cwd() {
   std::string from_path = find_in_path("carbon");
   if (!from_path.empty()) return from_path;
   return cwd() + "/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon";
+}
+
+// === String-to-int conversion (Carbon has no stoi) ===
+[[nodiscard]] inline int stoi(std::string s) {
+  try { return std::stoi(s); } catch (...) { return 0; }
+}
+
+// === Validate string is numeric (digits, optional dot, optional leading -) ===
+[[nodiscard]] inline int validate_numeric(std::string s) {
+  if (s.empty()) return 0;
+  size_t start = 0;
+  if (s[0] == '-' || s[0] == '+') start = 1;
+  if (start >= s.size()) return 0;
+  int dots = 0;
+  for (size_t i = start; i < s.size(); i++) {
+    if (s[i] == '.') { dots++; if (dots > 1) return 0; }
+    else if (s[i] < '0' || s[i] > '9') return 0;
+  }
+  return 1;
+}
+
+// === Concat file list builder (2 files) ===
+inline std::string build_concat_list_2(std::string_view a, std::string_view b) {
+  return "file '" + std::string(a) + "'\nfile '" + std::string(b) + "'\n";
+}
+
+// === Concat file list builder (vector) ===
+inline std::string build_concat_list(const std::vector<std::string>& files) {
+  std::string list;
+  for (auto& f : files) {
+    list += "file '" + f + "'\n";
+  }
+  return list;
+}
+
+// === Speed filter builder ===
+inline std::string speed_filter(std::string_view factor) {
+  std::string f(factor);
+  return "setpts=" + f + "*PTS";
+}
+
+// === Probe video duration as string ===
+inline std::string probe_duration_str(std::string ffprobe, std::string input) {
+  std::string cmd = ffprobe + " -v quiet -show_entries format=duration -of csv=p=0 " + input;
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back()=='\n'||raw.back()=='\r')) raw.pop_back();
+  return raw;
+}
+
+// === Probe video resolution ===
+inline std::string probe_resolution(std::string ffprobe, std::string input) {
+  std::string cmd = ffprobe + " -v quiet -select_streams v:0 -show_entries stream=width,height -of csv=p=0 " + input;
+  std::string raw = process::run_capture(cmd);
+  while (!raw.empty() && (raw.back()=='\n'||raw.back()=='\r')) raw.pop_back();
+  return raw;
+}
+
+// === Write temp file (for concat lists) ===
+inline std::string write_temp_file(std::string_view content, std::string_view suffix) {
+  char tmpl[] = "/tmp/easyffmpeg_XXXXXX";
+  int fd = mkstemp(tmpl);
+  if (fd < 0) return "";
+  std::string path(tmpl);
+  write(fd, content.data(), content.size());
+  close(fd);
+  return path;
+}
+
+// === Remove temp file ===
+inline void remove_temp_file(const std::string& path) {
+  if (!path.empty()) unlink(path.c_str());
+}
+
+// === atempo chain builder (atempo only supports 0.5-2.0) ===
+inline std::string atempo_chain(double factor) {
+  if (factor <= 0) return "atempo=1.0";
+  std::string chain;
+  double remaining = factor;
+  while (remaining > 2.0) {
+    if (!chain.empty()) chain += ",";
+    chain += "atempo=2.0";
+    remaining /= 2.0;
+  }
+  while (remaining < 0.5) {
+    if (!chain.empty()) chain += ",";
+    chain += "atempo=0.5";
+    remaining /= 0.5;
+  }
+  if (!chain.empty()) chain += ",";
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.4g", remaining);
+  chain += "atempo=" + std::string(buf);
+  return chain;
+}
+
+// === Build filter_complex for speed ===
+inline std::string build_speed_filter_complex(std::string_view factor) {
+  std::string f(factor);
+  std::string audio = atempo_chain(std::stod(f));
+  return "[0:v]setpts=" + f + "*PTS[v];[0:a]" + audio + "[a]";
+}
+
+// === Build watermark overlay filter ===
+inline std::string build_watermark_filter(std::string position) {
+  if (position == "top-left") return "overlay=10:10";
+  if (position == "top-right") return "overlay=main_w-overlay_w-10:10";
+  if (position == "bottom-left") return "overlay=10:main_h-overlay_h-10";
+  if (position == "bottom-right") return "overlay=main_w-overlay_w-10:main_h-overlay_h-10";
+  if (position == "center") return "overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2";
+  return "overlay=10:10";
+}
+
+// === Build rotate filter ===
+inline std::string build_rotate_filter(std::string angle) {
+  if (angle == "90") return "transpose=1";
+  if (angle == "180") return "transpose=1,transpose=1";
+  if (angle == "270") return "transpose=2";
+  return "";
+}
+
+// === Build gif filter ===
+inline std::string build_gif_filter(int fps, int width) {
+  std::string w = std::to_string(width);
+  return "fps=" + std::to_string(fps) + ",scale=" + w + ":-1:flags=lanczos";
+}
+
+// === Build thumbnail filter ===
+inline std::string build_thumbnail_filter(int fps) {
+  return "fps=1/" + std::to_string(fps);
+}
+
+// === Build replace-audio command ===
+inline std::string build_replace_audio_cmd(std::string ffmpeg, std::string input, std::string audio, std::string output) {
+  return ffmpeg + " -y -i " + input + " -i " + audio + " -map 0:v -map 1:a -c:v copy -shortest " + output;
+}
+
+// === Build subtitle filter ===
+inline std::string build_subtitle_filter(std::string srt_path) {
+  return "subtitles=" + srt_path;
+}
+
+// === Build normalize filter ===
+inline std::string build_normalize_filter() {
+  return "loudnorm=I=-16:TP=-1.5:LRA=11";
 }
 
 // === Color helpers ===

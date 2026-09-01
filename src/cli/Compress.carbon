@@ -22,6 +22,8 @@ fn ShowHelp() {
   Core.PrintStr("  --preset <name>  Speed (ultrafast, fast, medium, slow)\n");
   Core.PrintStr("  --codec <codec>  Override video codec\n");
   Core.PrintStr("  --bitrate <br>   Audio bitrate\n");
+  Core.PrintStr("  --audio-codec <c>  Audio codec override\n");
+  Core.PrintStr("  --video-bitrate <br>  Video bitrate\n");
   Core.PrintStr("  --dry-run        Print ffmpeg command without executing\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Examples:\n"));
@@ -79,7 +81,12 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetCompressCrf());
     ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetCompressPreset());
   }
-  ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecAac());
+  let acodec: Cpp.std.string = Cpp.cli.get_flag_value("--audio-codec");
+  if (acodec != "") {
+    ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), acodec);
+  } else {
+    ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecAac());
+  }
   if (abr != "") {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), abr);
   } else if (Cpp.cli.has_flag("--mobile") == 1) {
@@ -88,6 +95,11 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetStreamingAudioBr());
   } else {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioBr(), Constants.PresetCompressAudioBr());
+  }
+  let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
+  if (vbr != "") {
+    ArgsBuilder.Add(Cpp.strh.make("-b:v"));
+    ArgsBuilder.Add(vbr);
   }
   if (Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.Add(Constants.FlagFilter());

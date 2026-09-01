@@ -1,6 +1,6 @@
 # Security — easy-ffmpeg
 
-> Per `security-audit/SKILL.md`. The wrapper forks `ffmpeg` via `Cpp.system(cmd)`. If `cmd` is built from untrusted user strings without validation, this is shell-command injection.
+> Per `security-audit/SKILL.md`. The wrapper forks `ffmpeg` via `fork()+execvp()` (no shell). If `cmd` is built from untrusted user strings without validation, this is shell-command injection.
 
 ## Threat model
 
@@ -12,7 +12,18 @@
 | Codec (`--codec h264`) | `Validate.IsAllowedCodec` matches allow-list, never free-text |
 | Preset / bitrate / crf | Presets defined in `Constants.carbon` (PresetWeb/Mobile/Streaming/Compress) |
 
-Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` allow-list/parser first.** Nothing reaches `Cpp.system` unvalidated.
+Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` allow-list/parser first.** Nothing reaches `process::run_str` unvalidated.
+
+### New subcommand security (Phase 5)
+
+- `concat`: temp file uses `mkstemp()` (no symlink race), cleaned up after exec
+- `watermark`: drawtext text escaped via `escape_drawtext()` (resists `:`, `'`, `\` injection)
+- `speed`: `--factor` validated as numeric before filter interpolation
+- `rotate`: `--angle` whitelist: only `90`, `180`, `270` accepted
+- `subtitle`: `--file` path validated via `ValidatePath()` before use
+- `watermark --image`: validated via `ValidatePath()` before use
+- All numeric inputs (`--fps`, `--width`, `--every`, `--factor`) range-checked > 0
+- All commands return actual exit code from ffmpeg (not hardcoded 0)
 
 ## Injection-proofing
 
@@ -22,7 +33,8 @@ Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` al
 
 ## Code review checklist (from skill)
 
-- [ ] no `Cpp.system` call site outside `src/core/Process.carbon`
+- [ ] no `fork+exec` call site outside `src/core/ffi_helper.hpp` (process::run_str)
 - [ ] `Validate.*` invoked before any `builder.Add(Constants.FlagInput, input)`
-- [ ] `grep -n 'system(' src` → only `Process.carbon`
+- [ ] `grep -n 'system(' src` → only in `ffi_helper.hpp` (build tool only, via `run_shell`)
+- [ ] `grep -n 'run_str(' src` → only in `ffi_helper.hpp` and `Process.carbon`
 - [ ] no secrets/env-dump in help output or `--debug`

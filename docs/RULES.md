@@ -85,7 +85,7 @@
 | `verification-planning` | `docs/VERIFICATION.md` — claim → evidence path per phase; no completion claim without `scripts/loop-build.sh --once` fresh run. |
 | `loop-engineering` | `scripts/loop-build.sh` Grill contract, Monitor callbacks. |
 | `systematic-debugging` | `docs/DEBUGGING.md` — fault injection via `Validate`, host-first BDD scenarios. |
-| `security-audit` | `docs/SECURITY.md` — `Cpp.system` injection risk, allow-list validation. |
+| `security-audit` | `docs/SECURITY.md` — fork+execvp (no shell), allow-list validation. |
 | `simplify` / `codemap` | `ARCHITECTURE.md` single builder, `codemap.md` per folder after init. |
 
 ## Enforcement Checklist (PR must pass)

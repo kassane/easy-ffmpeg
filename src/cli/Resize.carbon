@@ -18,6 +18,11 @@ fn ShowHelp() {
   Core.PrintStr("  --scale retro    480p\n");
   Core.PrintStr("  --scale icon     240p\n");
   Core.PrintStr("\n");
+  Core.PrintStr(Cpp.color.bold("Social presets:\n"));
+  Core.PrintStr("  --scale tiktok     1080x1920\n");
+  Core.PrintStr("  --scale instagram  1080x1080\n");
+  Core.PrintStr("  --scale youtube    1920x1080\n");
+  Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Manual:\n"));
   Core.PrintStr("  --width <px>     Target width\n");
   Core.PrintStr("  --height <px>    Target height\n");
@@ -56,7 +61,31 @@ fn Run() -> i32 {
   let scale: Cpp.std.string = Cpp.cli.get_flag_value("--scale");
   let w: Cpp.std.string = Cpp.cli.get_flag_value("--width");
   let h: Cpp.std.string = Cpp.cli.get_flag_value("--height");
-  if (scale != "") {
+  if (scale == "tiktok") {
+    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), "");
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Constants.FfmpegBin());
+    ArgsBuilder.Add(Constants.FlagOverwrite());
+    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
+    ArgsBuilder.Add(output);
+  } else if (scale == "instagram") {
+    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), "");
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Constants.FfmpegBin());
+    ArgsBuilder.Add(Constants.FlagOverwrite());
+    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
+    ArgsBuilder.Add(output);
+  } else if (scale == "youtube") {
+    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), "");
+    ArgsBuilder.Clear();
+    ArgsBuilder.Add(Constants.FfmpegBin());
+    ArgsBuilder.Add(Constants.FlagOverwrite());
+    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
+    ArgsBuilder.Add(output);
+  } else if (scale != "") {
     let h_str: Cpp.std.string = Cpp.scale_height(scale);
     if (h_str == "0") {
       Core.PrintStr(Cpp.color.red("error: unknown scale preset"));

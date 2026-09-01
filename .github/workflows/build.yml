@@ -53,13 +53,14 @@ jobs:
       
       - name: Build application
         run: |
-          carbon build src/main.carbon \
-            src/core/*.carbon src/cli/*.carbon \
-            --output=easy-ffmpeg \
+          carbon build build.carbon \
+            --output=build \
             -- -std=c++17 -Isrc/core
+          ./build --verbose
       
       - name: Testing
         run: |
           bash tests/test_dry_run.sh 2>&1
+          bash tests/test_new_dry_run.sh 2>&1
           bash tests/test_exit_codes.sh 2>&1
           bash tests/smoke.sh 2>&1

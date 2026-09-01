@@ -100,4 +100,39 @@ fn QuietValue() -> Core.String { return "quiet"; }
 fn JsonValue() -> Core.String { return "json"; }
 
 // Version
-fn Version() -> Core.String { return "0.1.0"; }
+fn Version() -> Core.String { return "0.2.0"; }
+
+// Command names
+fn CmdConcat() -> Core.String { return "concat"; }
+fn CmdGif() -> Core.String { return "gif"; }
+fn CmdThumbnail() -> Core.String { return "thumbnail"; }
+fn CmdSpeed() -> Core.String { return "speed"; }
+fn CmdRotate() -> Core.String { return "rotate"; }
+fn CmdWatermark() -> Core.String { return "watermark"; }
+fn CmdSubtitle() -> Core.String { return "subtitle"; }
+fn CmdMetadata() -> Core.String { return "metadata"; }
+fn CmdNormalize() -> Core.String { return "normalize"; }
+fn CmdReplaceAudio() -> Core.String { return "replace-audio"; }
+
+// New flags
+fn FlagFilterComplex() -> Core.String { return "-filter_complex"; }
+fn FlagMetadataTitle() -> Core.String { return "-metadata"; }
+fn FlagMapMetadata() -> Core.String { return "-map_metadata"; }
+fn FlagSsseof() -> Core.String { return "-sseof"; }
+fn FlagShortest() -> Core.String { return "-shortest"; }
+
+// Speed presets
+fn SpeedHalf() -> Core.String { return "0.5"; }
+fn SpeedDouble() -> Core.String { return "2.0"; }
+
+// Rotation presets
+fn Rotate90() -> Core.String { return "1"; }
+fn Rotate180() -> Core.String { return "2"; }
+fn Rotate270() -> Core.String { return "3"; }
+
+// Scale social presets
+fn ScaleTiktok() -> Core.String { return "1080:1920"; }
+fn ScaleInstagram() -> Core.String { return "1080:1080"; }
+fn ScaleYoutube() -> Core.String { return "1920:1080"; }
+
+// ANSI colors

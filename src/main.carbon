@@ -1,3 +1,4 @@
+// Entry point. No package declaration (required for fn Run()).
 import Core library "io";
 import Core library "prelude/types";
 import Cpp library "ffi_helper.hpp";
@@ -7,6 +8,16 @@ import Trim library "cli/trim";
 import Resize library "cli/resize";
 import AudioExtract library "cli/audioextract";
 import Probe library "cli/probe";
+import Concat library "cli/concat";
+import Gif library "cli/gif";
+import Thumbnail library "cli/thumbnail";
+import Speed library "cli/speed";
+import Rotate library "cli/rotate";
+import Watermark library "cli/watermark";
+import Subtitle library "cli/subtitle";
+import Metadata library "cli/metadata";
+import Normalize library "cli/normalize";
+import ReplaceAudio library "cli/replaceaudio";
 import Constants library "core/constants";
 
 fn ShowHelp() {
@@ -21,6 +32,16 @@ fn ShowHelp() {
   Core.PrintStr("  resize        Scale video dimensions\n");
   Core.PrintStr("  audio-extract Extract audio track from video\n");
   Core.PrintStr("  probe         Show media file information\n");
+  Core.PrintStr("  concat        Merge multiple videos into one\n");
+  Core.PrintStr("  gif           Convert video to animated GIF\n");
+  Core.PrintStr("  thumbnail     Extract a frame as image\n");
+  Core.PrintStr("  speed         Change playback speed\n");
+  Core.PrintStr("  rotate        Rotate or flip video\n");
+  Core.PrintStr("  watermark     Add image or text overlay\n");
+  Core.PrintStr("  subtitle      Burn subtitles into video\n");
+  Core.PrintStr("  metadata      Strip or set file metadata\n");
+  Core.PrintStr("  normalize     Normalize audio levels\n");
+  Core.PrintStr("  replace-audio Replace audio track\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Presets (use with compress):\n"));
   Core.PrintStr("  --web         H.264+AAC, faststart, stereo\n");
@@ -34,6 +55,9 @@ fn ShowHelp() {
   Core.PrintStr("  --scale 2k       1440p\n");
   Core.PrintStr("  --scale retro    480p\n");
   Core.PrintStr("  --scale icon     240p\n");
+  Core.PrintStr("  --scale tiktok   1080x1920\n");
+  Core.PrintStr("  --scale instagram 1080x1080\n");
+  Core.PrintStr("  --scale youtube  1920x1080\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Options:\n"));
   Core.PrintStr("  --dry-run     Print ffmpeg command without executing\n");
@@ -103,6 +127,56 @@ fn Run() {
   }
   if (Cpp.cli.arg_matches(1, "probe") == 1) {
     let rc: i32 = Probe.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "concat") == 1) {
+    let rc: i32 = Concat.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "gif") == 1) {
+    let rc: i32 = Gif.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "thumbnail") == 1) {
+    let rc: i32 = Thumbnail.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "speed") == 1) {
+    let rc: i32 = Speed.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "rotate") == 1) {
+    let rc: i32 = Rotate.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "watermark") == 1) {
+    let rc: i32 = Watermark.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "subtitle") == 1) {
+    let rc: i32 = Subtitle.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "metadata") == 1) {
+    let rc: i32 = Metadata.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "normalize") == 1) {
+    let rc: i32 = Normalize.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "replace-audio") == 1) {
+    let rc: i32 = ReplaceAudio.Run();
     Cpp.cli_exit(rc);
     return;
   }

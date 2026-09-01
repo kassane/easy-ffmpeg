@@ -1,4 +1,4 @@
-package Trim library "cli/trim";
+package Rotate library "cli/rotate";
 import Core library "io";
 import Core library "prelude/types";
 import Cpp library "ffi_helper.hpp";
@@ -9,17 +9,16 @@ import Constants library "core/constants";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
-  Core.PrintStr(" easy-ffmpeg trim <input> <output>\n");
-  Core.PrintStr("  --start <time>     Start time (HH:MM:SS or seconds)\n");
-  Core.PrintStr("  --duration <time>  Duration to extract\n");
-  Core.PrintStr("  --end <time>       End time\n");
-  Core.PrintStr("  --sseof <sec>      Start from last N seconds\n");
-  Core.PrintStr("  --copy             Stream copy (no re-encode)\n");
-  Core.PrintStr("  --dry-run          Print ffmpeg command without executing\n");
+  Core.PrintStr(" easy-ffmpeg rotate <input> <output>\n");
+  Core.PrintStr("\n");
+  Core.PrintStr(Cpp.color.bold("Options:\n"));
+  Core.PrintStr("  --angle <90|180|270>   Rotate by degrees\n");
+  Core.PrintStr("  --flip <h|v>           Flip horizontal or vertical\n");
+  Core.PrintStr("  --dry-run              Print ffmpeg command without executing\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Examples:\n"));
-  Core.PrintStr("  easy-ffmpeg trim video.mp4 clip.mp4 --start 00:01:00 --duration 30\n");
-  Core.PrintStr("  easy-ffmpeg trim video.mp4 clip.mp4 --start 0 --end 10 --copy\n");
+  Core.PrintStr("  easy-ffmpeg rotate video.mp4 rotated.mp4 --angle 90\n");
+  Core.PrintStr("  easy-ffmpeg rotate video.mp4 flipped.mp4 --flip h\n");
 }
 
 fn Run() -> i32 {
@@ -42,24 +41,30 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
+  if (output == "") {
+    Core.PrintStr(Cpp.color.red("error: output file required"));
+    Core.PrintStr("\n");
+    return Constants.ExitFailure();
+  }
+  let angle: Cpp.std.string = Cpp.cli.get_flag_value("--angle");
+  let flip: Cpp.std.string = Cpp.cli.get_flag_value("--flip");
   ArgsBuilder.Clear();
   ArgsBuilder.Add(Constants.FfmpegBin());
   ArgsBuilder.Add(Constants.FlagOverwrite());
-  let sseof: Cpp.std.string = Cpp.cli.get_flag_value("--sseof");
-  if (sseof != "") { ArgsBuilder.Add(Cpp.strh.make("-sseof")); ArgsBuilder.Add(sseof); }
-  let start: Cpp.std.string = Cpp.cli.get_flag_value("--start");
-  if (start != "") { ArgsBuilder.Add(Constants.FlagStart()); ArgsBuilder.Add(start); }
-  let duration: Cpp.std.string = Cpp.cli.get_flag_value("--duration");
-  let end: Cpp.std.string = Cpp.cli.get_flag_value("--end");
-  if (duration != "") { ArgsBuilder.Add(Constants.FlagDuration()); ArgsBuilder.Add(duration); }
-  else if (end != "") { ArgsBuilder.Add(Constants.FlagTo()); ArgsBuilder.Add(end); }
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-  if (Cpp.cli.has_flag("--copy") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
-    ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
-  }
-  if (output == "") {
-    Core.PrintStr(Cpp.color.red("error: output file required"));
+  if (angle != "") {
+    if (angle != "90" and angle != "180" and angle != "270") {
+      Core.PrintStr(Cpp.color.red("error: --angle must be 90, 180, or 270"));
+      Core.PrintStr("\n");
+      return Constants.ExitFailure();
+    }
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.build_rotate_filter(angle));
+  } else if (flip == "h") {
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.strh.make("hflip"));
+  } else if (flip == "v") {
+    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Cpp.strh.make("vflip"));
+  } else {
+    Core.PrintStr(Cpp.color.red("error: --angle or --flip required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
@@ -68,5 +73,5 @@ fn Run() -> i32 {
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
   let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return Constants.ExitSuccess();
+  return rc;
 }

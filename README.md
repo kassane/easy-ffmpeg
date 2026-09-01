@@ -26,6 +26,16 @@ $ easy-ffmpeg probe movie.mp4 --json
 | `resize` | Scale dimensions | `resize in.mp4 out.mp4 --scale hd` |
 | `audio-extract` | Strip video, keep audio | `audio-extract in.mp4 out.mp3` |
 | `probe` | Inspect media metadata | `probe in.mp4 --json` |
+| `concat` | Merge multiple videos | `concat a.mp4 b.mp4 merged.mp4 --copy` |
+| `gif` | Video to animated GIF | `gif video.mp4 anim.gif --fps 10` |
+| `thumbnail` | Extract a frame as image | `thumbnail video.mp4 thumb.jpg --time 00:01:30` |
+| `speed` | Change playback speed | `speed video.mp4 fast.mp4 --factor 2.0` |
+| `rotate` | Rotate or flip video | `rotate video.mp4 rot.mp4 --angle 90` |
+| `watermark` | Image or text overlay | `watermark video.mp4 out.mp4 --text Sample` |
+| `subtitle` | Burn subtitles into video | `subtitle video.mp4 out.mp4 --file subs.srt` |
+| `metadata` | Strip or set metadata | `metadata video.mp4 clean.mp4 --strip` |
+| `normalize` | Normalize audio levels | `normalize video.mp4 loud.mp4` |
+| `replace-audio` | Replace audio track | `replace-audio video.mp4 out.mp4 --audio music.mp3` |
 
 Every command supports `--dry-run` — prints the exact ffmpeg command without executing.
 
@@ -41,6 +51,7 @@ Every command supports `--dry-run` — prints the exact ffmpeg command without e
 ### Scale presets (`resize`)
 
 `--scale icon` (240p) · `--scale retro` (480p) · `--scale hd` (720p) · `--scale fullhd` (1080p) · `--scale 2k` (1440p)
+`--scale tiktok` (1080x1920) · `--scale instagram` (1080x1080) · `--scale youtube` (1920x1080)
 
 ### Smart remux
 

@@ -7,7 +7,7 @@
                                        │ argv[1] == Constants.Cmd*
                      ┌─────────────────┼─────────────────┐
                      ▼                 ▼                 ▼
-              CliConvert        CliCompress        CliTrim ... (src/cli/*.carbon)
+              CliConvert        CliCompress        CliTrim        ... (16 files in src/cli/*.carbon)
                      │                 │                 │
                      └─────────────────┼─────────────────┘
                                        ▼
@@ -22,7 +22,7 @@
                               └────────┬────────┘
                                        ▼
                               ┌─────────────────┐
-                              │   Process.Exec  │  import Cpp "<cstdlib>" → Cpp.system
+                              │   Process.Exec  │  fork()+execvp() via C++ interop
                               └────────┬────────┘
                                        │ fork/exec
                               ┌────────┴────────┐
@@ -33,7 +33,7 @@
 ## Why This Shape
 
 * **One builder, one exec** — eliminates duplication (rule: avoid redundancies). Every `"-c:v"`, `"-b:a"`, `"copy"` flows through `Constants.carbon` → `ArgsBuilder` method. No `cli/*.carbon` touches raw literals.
-* **Exec via C++ interop, not libav*** — Carbon 0.1 nightly has no safe `libav*` import (`avcodec.h` pulls `<atomic>`, templates). `Cpp.system` is proven (`import Cpp library "<cstdio>"` works per `toolchain/docs`). Keeps build to one `carbon build` line, no `pkg-config` at compile time.
+* **Exec via C++ interop, not libav*** — Carbon 0.1 nightly has no safe `libav*` import (`avcodec.h` pulls `<atomic>`, templates). `fork()+execvp()` is proven (`import Cpp library "<cstdio>"` works per `toolchain/docs`). Keeps build to one `carbon build` line, no `pkg-config` at compile time.
 * **Dry-run first** — `Builder.ToString()` testable without ffmpeg installed.
 
 ## File Responsibilities
@@ -42,7 +42,7 @@
 |------|------|------------------|
 | `Constants.carbon` | every magic string/number: flags, codecs, presets, exit codes, defaults | logic |
 | `ArgsBuilder.carbon` | `class Builder`, `AddFlagValue`, `AddVideoCodec`, `ToSystemCmd` | exec or validation |
-| `Process.carbon` | `fn Exec(String) -> i32` single call to `Cpp.system` | builder logic |
+| `Process.carbon` | `fn Exec(String) -> i32` single call to `process::run_str` (fork+execvp) | builder logic |
 | `Validate.carbon` | `Exists`, `ParseTime`, `IsAllowedCodec` | builder logic |
 | `cli/Convert.carbon` etc | parse own args, call `builder.AddX(Constants.Y)` | raw `"-c:v"` literals |
 | `main.carbon` | dispatch `if (arg == Constants.CmdConvert)` | builder/exec duplication |

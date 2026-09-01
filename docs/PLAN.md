@@ -1,10 +1,10 @@
-# Plan — easy-ffmpeg on Carbon (5 Phases)
+# Plan — easy-ffmpeg on Carbon (6 Phases)
 
 > Source: deep research 2026-08-29, `ffmpeg -h` (17 828 lines), `carbon --help` / `carbon build --help`, Carbon roadmap 0.1 nightly.
 
 ## Reality Check (why wrapper, not libav* SDK)
 
-* **Carbon 0.1 nightly** (`0.0.0-0.nightly.2026.08.29+f519ccc`) can `import Cpp library "<cstdio>"` and call `Cpp.putchar`. `Cpp.system()` works via a `std::string` bridge: `Cpp.strh.make(Core.String)` → `Cpp.std.string` (value type, NOT Optional), then `Cpp.system(cmd.c_str())`. Custom headers (`import Cpp library "ffi_helper.hpp"`) compile/link when the include dir is passed via `carbon build ... -- -std=c++17 -I<dir>`. It **cannot** yet reliably import full `libavcodec/avcodec.h` template-heavy headers, nor does it expose `String` formatting or heap `Vector<String>`. Checked via `lib/carbon/core` (only `io.carbon`, `prelude/*`).
+* **Carbon 0.1 nightly** (`0.0.0-0.nightly.2026.08.29+f519ccc`) can `import Cpp library "<cstdio>"` and call `Cpp.putchar`. `process::run_str()` works via a `std::string` bridge (fork+execvp, no shell). Custom headers (`import Cpp library "ffi_helper.hpp"`) compile/link when the include dir is passed via `carbon build ... -- -std=c++17 -I<dir>`. It **cannot** yet reliably import full `libavcodec/avcodec.h` template-heavy headers, nor does it expose `String` formatting or heap `Vector<String>`. Checked via `lib/carbon/core` (only `io.carbon`, `prelude/*`).
 * **CRASH BUG**: cross-package references to package-level `let` constants trigger a CHECK failure in lowering (`const_id.is_concrete()`). Workaround: use FUNCTIONS instead of `let` constants in `Constants.carbon`. See `docs/TODO.md` and `.swival/memory/cpp_compiler_crash.md`.
 * FFmpeg project itself recommends CLI for 90% use-cases; `libav*` (`avcodec_send_packet`/`avcodec_receive_frame`) is for custom players/transcoders. Wrapper satisfies “easier CLI” with 1/10th the Carbon complexity.
 * Therefore **Phase 1–3 = Argv-builder + exec**, Phase 5 (optional) = migrate to `libav*` interop when Carbon 0.2 ships.
@@ -112,7 +112,35 @@ Exit: `scripts/loop-build.sh` runs `carbon build` + `sh tests/smoke.sh` (probes 
 
 Exit: fresh clone builds and passes smoke tests.
 
-## Phase 5 — Optional libav* Migration (post-0.2)
+## Phase 5 — Feature Expansion (Day 5)
+
+10 new subcommands + quality improvements to existing commands:
+
+| Subcommand | FFmpeg mapping | Example |
+|---|---|---|
+| `concat` | `-f concat -safe 0 -i LIST -c copy` | `concat a.mp4 b.mp4 out.mp4 --copy` |
+| `gif` | `-vf fps=N,scale=W:-1:flags=lanczos` | `gif in.mp4 out.gif --fps 15 --width 480` |
+| `thumbnail` | `-ss TIME -vframes 1` or `-vf fps=1/N` | `thumbnail in.mp4 thumb.jpg --time 00:01:30` |
+| `speed` | `-filter_complex [0:v]setpts=N*PTS;[0:a]atempo=N` | `speed in.mp4 out.mp4 --factor 2.0` |
+| `rotate` | `-vf transpose=N` or `hflip`/`vflip` | `rotate in.mp4 out.mp4 --angle 90` |
+| `watermark` | `-filter_complex overlay` or `-vf drawtext` | `watermark in.mp4 out.mp4 --image logo.png` |
+| `subtitle` | `-vf subtitles=FILE` | `subtitle in.mp4 out.mp4 --file subs.srt` |
+| `metadata` | `-map_metadata -1` or `-metadata key=val` | `metadata in.mp4 out.mp4 --strip` |
+| `normalize` | `-af loudnorm=I=-16:TP=-1.5:LRA=11` | `normalize in.mp4 loud.mp4` |
+| `replace-audio` | `-i AUDIO -map 0:v -map 1:a -c:v copy` | `replace-audio in.mp4 out.mp4 --audio music.mp3` |
+
+Quality improvements to existing commands:
+- `compress`: `--audio-codec`, `--video-bitrate` flags
+- `resize`: `--scale tiktok`, `--scale instagram`, `--scale youtube` social presets
+- `trim`: `--sseof` flag (seek from end)
+
+- [x] 10 new CLI files created
+- [x] Security audit passed (3 criticals fixed: temp file race, filter injection, numeric validation)
+- [x] All 77 tests passing
+
+Exit: `./easy-ffmpeg --help` lists 16 commands, all dry-run tests pass.
+
+## Phase 6 — Optional libav* Migration (post-0.2)
 
 Only after Carbon can `import Cpp library "libavcodec/avcodec.h"` without template errors:
 - `src/interop/AvCodec.carbon` wraps `AVCodec*`, `AVFrame*` with RAII.
