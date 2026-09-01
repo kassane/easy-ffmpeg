@@ -147,3 +147,7 @@ fn PresetAv1Crf() -> Core.String { return "30"; }
 fn PresetAv1Preset() -> Core.String { return "medium"; }
 fn PresetAv1AudioBr() -> Core.String { return "128k"; }
 fn CodecLibsvtav1() -> Core.String { return "libsvtav1"; }
+
+// ── Crop ────────────────────────────────────────────────────────────
+fn CmdCrop() -> Core.String { return "crop"; }
+

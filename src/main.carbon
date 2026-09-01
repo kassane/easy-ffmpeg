@@ -1,6 +1,7 @@
 // Entry point. No package declaration (required for fn Run()).
 import AudioExtract library "cli/audioextract";
 import Concat library "cli/concat";
+import Crop library "cli/crop";
 import Compress library "cli/compress";
 import Constants library "core/constants";
 import Convert library "cli/convert";
@@ -158,6 +159,11 @@ fn Run() {
   }
   if (Cpp.cli.arg_matches(1, "normalize") == 1) {
     let rc: i32 = Normalize.Run();
+    Cpp.cli_exit(rc);
+    return;
+  }
+  if (Cpp.cli.arg_matches(1, "crop") == 1) {
+    let rc: i32 = Crop.Run();
     Cpp.cli_exit(rc);
     return;
   }

@@ -764,14 +764,18 @@ inline std::string probe_resolution(std::string ffprobe, std::string input) {
 // === Write temp file (for concat lists) ===
 inline std::string write_temp_file(std::string_view content,
                                    std::string_view suffix) {
-  std::string tpl = "/tmp/easyffmpeg_XXXXXX" + std::string(suffix);
-  char buf[64];
-  snprintf(buf, sizeof(buf), "%s", tpl.c_str());
+  // mkstemp requires XXXXXX at end; create first, then rename with suffix
+  char buf[] = "/tmp/easyffmpeg_XXXXXX";
   int fd = mkstemp(buf);
   if (fd < 0) return "";
   ssize_t written = write(fd, content.data(), content.size());
-  (void)written;  // best-effort; close handles flush
+  (void)written;
   close(fd);
+  if (!suffix.empty()) {
+    std::string final_path = std::string(buf) + std::string(suffix);
+    if (rename(buf, final_path.c_str()) == 0) return final_path;
+    // rename failed; return unsuffixed path
+  }
   return std::string(buf);
 }
 
@@ -881,6 +885,12 @@ inline std::string build_gif_filter(int fps, int width) {
 // === Build thumbnail filter ===
 inline std::string build_thumbnail_filter(int fps) {
   return "fps=1/" + std::to_string(fps);
+}
+
+// === Build crop filter ===
+inline std::string build_crop_filter(int w, int h, int x, int y) {
+  return "crop=" + std::to_string(w) + ":" + std::to_string(h) + ":" +
+         std::to_string(x) + ":" + std::to_string(y);
 }
 
 // === Build subtitle filter ===

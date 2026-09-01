@@ -73,6 +73,9 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibx265());
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetStreamingCrf());
     ArgsBuilder.AddFlagValue(Constants.FlagPreset(), Constants.PresetStreamingPreset());
+  } else if (Cpp.cli.has_flag("--jxl") == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Cpp.strh.make("libjxl"));
+    ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Cpp.strh.make("0"));
   } else if (Cpp.cli.has_flag("--av1") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.CodecLibsvtav1());
     ArgsBuilder.AddFlagValue(Constants.FlagCrf(), Constants.PresetAv1Crf());
@@ -100,7 +103,9 @@ fn Run() -> i32 {
   let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
   if (Cpp.str_ne(vbr, "")) {
     ArgsBuilder.AddFlagValue(Cpp.strh.make(Constants.FlagVideoBitrate()), vbr);
-  ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
+  }
+  if (Cpp.cli.has_flag("--web") == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
   }
   if (Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Constants.ScaleFilterHd());

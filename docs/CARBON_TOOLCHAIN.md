@@ -122,3 +122,19 @@ The `CppRange` interface is defined in the prelude and allows iterating C++ cont
 ### Optional
 
 `Optional(T)` works in prelude: `Optional(i32).Some(42)`, `Optional(i32).None()`, `.HasValue()`, `.Get()`. Not used in the project yet; empty string checks (`str_eq(x, "")`) serve the same purpose and are simpler given current interop constraints.
+
+### `carbon clang` and C++ interop
+
+`carbon clang -- <flags>` invokes the toolchain's bundled clang for standalone C++ compilation. Key flags:
+- `-fexperimental-library` — required for `<filesystem>`, `<memory_resource>`, and other C++20/23 library features.
+- Linking needs `-lc++ -lc++abi` (not needed when using `carbon build` which handles this).
+
+Tested via `carbon clang`:
+- `<filesystem>` — `std::filesystem::temp_directory_path()` works. Available in Carbon's libc++.
+- `<memory_resource>` — PMR allocators compile. Could reduce heap pressure for temp buffers.
+- `<memory>` — `std::unique_ptr`, `std::shared_ptr` work.
+- `<string_view>` — works (already used in `ffi_helper.hpp`).
+
+### std::filesystem for write_temp_file
+
+`write_temp_file()` currently uses POSIX `mkstemp()` + `rename()`. A future improvement could use `std::filesystem::temp_directory_path()` for cross-platform portability (Windows support). Not needed yet since the project targets Linux.

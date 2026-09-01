@@ -47,6 +47,7 @@ fn Run() -> i32 {
   }
   let time: Cpp.std.string = Cpp.cli.get_flag_value("--time");
   let every: Cpp.std.string = Cpp.cli.get_flag_value("--every");
+  let webp: i32 = Cpp.cli.has_flag("--webp");
   ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.str_ne(every, "")) {
@@ -70,6 +71,9 @@ fn Run() -> i32 {
       ArgsBuilder.AddFlagValue(Constants.FlagStart(), time);
     }
     ArgsBuilder.AddFlagValue(Constants.FlagVframes(), Cpp.strh.make(Constants.VframesOne()));
+  }
+  if (webp == 1) {
+    ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Cpp.strh.make("libwebp_anim"));
   }
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();

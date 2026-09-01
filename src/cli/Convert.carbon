@@ -51,8 +51,8 @@ fn Run() -> i32 {
       let acodec: Cpp.std.string = codecs.substr(sep + 1);
       let v_codec_h: Cpp.std.string = Cpp.strh.make(Constants.CodecH264());
       let aac: Cpp.std.string = Cpp.strh.make(Constants.CodecAac());
-      if (vcodec == v_codec_h) {
-        if (acodec == aac) {
+      if (Cpp.str_eq(vcodec, v_codec_h)) {
+        if (Cpp.str_eq(acodec, aac)) {
           ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
           ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
         }

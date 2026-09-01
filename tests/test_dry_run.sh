@@ -124,7 +124,11 @@ OUT=$($BIN thumbnail $FIX /tmp/o.jpg --dry-run 2>&1)
 check_contains "thumbnail: -vframes 1" "-vframes 1" "$OUT"
 
 OUT=$($BIN thumbnail $FIX /tmp/o.jpg --time 00:01:30 --dry-run 2>&1)
+OUT=$($BIN thumbnail $FIX /tmp/o.webp --every 2 --webp --dry-run 2>&1)
+check_contains "thumbnail --webp: libwebp_anim" "libwebp_anim" "$OUT"
 check_contains "thumbnail --time: -ss 00:01:30" "-ss 00:01:30" "$OUT"
+OUT=$($BIN thumbnail $FIX /tmp/o.webp --every 2 --webp --dry-run 2>&1)
+check_contains "thumbnail --webp: libwebp_anim" "libwebp_anim" "$OUT"
 
 echo "=== speed ==="
 OUT=$($BIN speed $FIX /tmp/o.mp4 --factor 2.0 --dry-run 2>&1)
@@ -173,3 +177,10 @@ echo "=== replace-audio ==="
 OUT=$($BIN replace-audio $FIX /tmp/o.mp4 --audio $FIX --dry-run 2>&1)
 check_contains "replace-audio: -map 0:v" "-map 0:v" "$OUT"
 check_contains "replace-audio: -map 1:a" "-map 1:a" "$OUT"
+
+echo "=== crop ==="
+OUT=$($BIN crop $FIX /tmp/o.mp4 --width 320 --height 240 --dry-run 2>&1)
+check_contains "crop: crop filter" "crop=320:240:0:0" "$OUT"
+
+OUT=$($BIN crop $FIX /tmp/o.mp4 --width 640 --height 480 --x 100 --y 50 --dry-run 2>&1)
+check_contains "crop with offset" "crop=640:480:100:50" "$OUT"

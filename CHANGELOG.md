@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.4] - 2026-09-01
+
+### Added
+
+- **crop subcommand**: crop video to region (`--width`, `--height`, `--x`, `--y`).
+- **WebP animated thumbnail**: `--webp` flag for `thumbnail` (uses `libwebp_anim`).
+- **JPEG XL compression**: `--jxl` flag for `compress` (uses `libjxl`).
+- **Compiler hardening**: `-Wall -Wextra -fstack-protector-strong -D_FORTIFY_SOURCE=2` in `ArgsBuilder.StartBuild()` and Makefile.
+- **`carbon clang` docs**: documented standalone C++ compilation, `-fexperimental-library`, `<filesystem>`/`<memory_resource>` support.
+- **crop tests**: dry-run (2 checks) + security (missing input, valid input).
+
+### Fixed
+
+- **`--web` preset missing faststart**: moved `-movflags +faststart` out of `--video-bitrate` block to apply for `--web`.
+- **`write_temp_file` suffix**: `mkstemp` requires `XXXXXX` at end; create first, then `rename()` with suffix.
+- **Convert.carbon raw `==`**: replaced string `==` with `Cpp.str_eq()` (Carbon operator== bug).
+- **`ffi_helper.hpp` warnings**: fixed unused `suffix` parameter, unchecked `write()` return.
+
+### Changed
+
+- Test counts: 56 dry-run, 52 security, 14 exit, 3 progress, 24 smoke (149 total).
+
 ## [0.2.3] - 2026-09-01
 
 ### Added
@@ -12,6 +34,7 @@
 
 ### Fixed
 
+- Removed unused `#include <algorithm>` from `ffi_helper.hpp`.
 - Fixed stale `class Builder` references in ARCHITECTURE.md, PLAN.md (now module-level functions).
 - Fixed data flow example to match actual ArgsBuilder API.
 

@@ -62,4 +62,5 @@ jobs:
           bash tests/test_dry_run.sh 2>&1
           bash tests/test_exit_codes.sh 2>&1
           bash tests/test_security.sh 2>&1
+          bash tests/test_progress.sh 2>&1
           bash tests/smoke.sh 2>&1

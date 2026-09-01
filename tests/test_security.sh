@@ -76,6 +76,7 @@ check_exit "speed valid" 0 $BIN speed $FIX /tmp/o.mp4 --factor 2.0 --dry-run
 check_exit "rotate valid" 0 $BIN rotate $FIX /tmp/o.mp4 --angle 90 --dry-run
 check_exit "metadata valid" 0 $BIN metadata $FIX /tmp/o.mp4 --strip --dry-run
 check_exit "normalize valid" 0 $BIN normalize $FIX /tmp/o.mp4 --dry-run
+check_exit "crop valid" 0 $BIN crop $FIX /tmp/o.mp4 --width 320 --height 240 --dry-run
 
 echo "=== help flags ==="
 check_exit "--help" 0 $BIN --help
@@ -92,3 +93,4 @@ check_exit "probe --help" 0 $BIN probe --help
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" = "0" ] || exit 1
+check_exit "crop missing input" 3 $BIN crop nonexistent.mp4 /tmp/o.mp4 --width 320 --height 240 --dry-run
