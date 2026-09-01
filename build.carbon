@@ -24,13 +24,9 @@ fn ShowHelp() {
 
 fn Run() {
   Cpp.cli.capture();
-  if (Cpp.cli.has_help() == 1) {
-    ShowHelp();
-    Cpp.cli_exit(0);
-    return;
-  }
-  if (Cpp.cli.has_flag("--version") == 1) {
-    Core.PrintStr("easy-ffmpeg build 0.2.0\n");
+  if (Cpp.cli.has_help() == 1 or Cpp.cli.has_flag("--version") == 1) {
+    if (Cpp.cli.has_help() == 1) { ShowHelp(); }
+    if (Cpp.cli.has_flag("--version") == 1) { Core.PrintStr("easy-ffmpeg build 0.2.0\n"); }
     Cpp.cli_exit(0);
     return;
   }
@@ -96,8 +92,8 @@ fn Run() {
       Cpp.cli_exit(1); return;
     }
     Core.PrintStr("Testing...\n");
-    Cpp.run_shell("./easy-ffmpeg --dry-run convert test.mp4 out.mp4");
-    Cpp.run_shell("./easy-ffmpeg --dry-run compress test.mp4 out.mp4 --web");
+    Cpp.run_shell("./easy-ffmpeg convert tests/fixtures/in.mp4 /tmp/out.mp4 --dry-run");
+    Cpp.run_shell("./easy-ffmpeg compress tests/fixtures/in.mp4 /tmp/out.mp4 --web --dry-run");
     Core.PrintStr("\x1B[32m[green] ok\x1B[0m\n");
     Cpp.cli_exit(0);
     return;

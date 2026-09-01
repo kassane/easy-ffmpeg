@@ -1,9 +1,6 @@
 // Single exec path. All process execution goes through Exec().
 // Bridges Carbon strings to C system() via std::string in ffi_helper.hpp.
 package Process library "core/process";
-import Core library "io";
-import Core library "prelude/types";
-import Cpp library "<cstdlib>";
 import Cpp library "ffi_helper.hpp";
 
 // Runs a shell command. Returns exit code, or -1 on fork failure.

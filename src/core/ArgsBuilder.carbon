@@ -1,8 +1,6 @@
 // Accumulates argv tokens into a command string via C++ static buffer.
 // Carbon can't hold mutable state, so accumulation lives in ffi_helper.hpp.
 package ArgsBuilder library "core/args";
-import Core library "io";
-import Core library "prelude/types";
 import Cpp library "ffi_helper.hpp";
 
 fn Clear() {

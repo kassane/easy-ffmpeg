@@ -1,11 +1,10 @@
 package Compress library "cli/compress";
-import Core library "io";
-import Core library "prelude/types";
-import Cpp library "ffi_helper.hpp";
 import ArgsBuilder library "core/args";
+import Constants library "core/constants";
+import Core library "io";
+import Cpp library "ffi_helper.hpp";
 import Process library "core/process";
 import Validate library "core/validate";
-import Constants library "core/constants";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -98,7 +97,7 @@ fn Run() -> i32 {
   }
   let vbr: Cpp.std.string = Cpp.cli.get_flag_value("--video-bitrate");
   if (vbr != "") {
-    ArgsBuilder.Add(Cpp.strh.make("-b:v"));
+    ArgsBuilder.Add(Cpp.strh.make(Constants.FlagVideoBitrate()));
     ArgsBuilder.Add(vbr);
   }
   if (Cpp.cli.has_flag("--mobile") == 1) {

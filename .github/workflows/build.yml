@@ -57,6 +57,7 @@ jobs:
             --output=build \
             -- -std=c++17 -Isrc/core
           ./build --verbose
+          ./build --check
       
       - name: Testing
         run: |

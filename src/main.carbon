@@ -1,24 +1,23 @@
 // Entry point. No package declaration (required for fn Run()).
-import Core library "io";
-import Core library "prelude/types";
-import Cpp library "ffi_helper.hpp";
-import Convert library "cli/convert";
-import Compress library "cli/compress";
-import Trim library "cli/trim";
-import Resize library "cli/resize";
 import AudioExtract library "cli/audioextract";
-import Probe library "cli/probe";
 import Concat library "cli/concat";
+import Compress library "cli/compress";
+import Constants library "core/constants";
+import Convert library "cli/convert";
+import Core library "io";
+import Cpp library "ffi_helper.hpp";
 import Gif library "cli/gif";
-import Thumbnail library "cli/thumbnail";
-import Speed library "cli/speed";
-import Rotate library "cli/rotate";
-import Watermark library "cli/watermark";
-import Subtitle library "cli/subtitle";
 import Metadata library "cli/metadata";
 import Normalize library "cli/normalize";
+import Probe library "cli/probe";
 import ReplaceAudio library "cli/replaceaudio";
-import Constants library "core/constants";
+import Resize library "cli/resize";
+import Rotate library "cli/rotate";
+import Speed library "cli/speed";
+import Subtitle library "cli/subtitle";
+import Thumbnail library "cli/thumbnail";
+import Trim library "cli/trim";
+import Watermark library "cli/watermark";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("easy-ffmpeg"));
@@ -74,25 +73,12 @@ fn Run() {
     return;
   }
 
-  if (Cpp.cli.arg_matches(1, "--help") == 1) {
+  if (Cpp.cli.arg_matches(1, "--help") == 1 or Cpp.cli.arg_matches(1, "-h") == 1) {
     ShowHelp();
     Cpp.cli_exit(Constants.ExitSuccess());
     return;
   }
-  if (Cpp.cli.arg_matches(1, "-h") == 1) {
-    ShowHelp();
-    Cpp.cli_exit(Constants.ExitSuccess());
-    return;
-  }
-
-  if (Cpp.cli.arg_matches(1, "--version") == 1) {
-    Core.PrintStr("easy-ffmpeg ");
-    Core.PrintStr(Constants.Version());
-    Core.PrintStr("\n");
-    Cpp.cli_exit(Constants.ExitSuccess());
-    return;
-  }
-  if (Cpp.cli.arg_matches(1, "-v") == 1) {
+  if (Cpp.cli.arg_matches(1, "--version") == 1 or Cpp.cli.arg_matches(1, "-v") == 1) {
     Core.PrintStr("easy-ffmpeg ");
     Core.PrintStr(Constants.Version());
     Core.PrintStr("\n");
