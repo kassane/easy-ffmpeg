@@ -62,9 +62,7 @@ fn Run() -> i32 {
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagFormat(), Cpp.strh.make(Constants.CmdConcat()));
   ArgsBuilder.AddFlagValue(Constants.FlagSafe(), Cpp.strh.make(Constants.SafeZero()));
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), list_path);

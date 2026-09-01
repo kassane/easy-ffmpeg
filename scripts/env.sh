@@ -2,7 +2,7 @@
 # Resolve Carbon toolchain + ffmpeg in one source.
 # Run from the repo root (all scripts in scripts/ do). Usage: . ./scripts/env.sh
 export EASY_FFMPEG_ROOT="$(pwd)"
-export CARBON="$EASY_FFMPEG_ROOT/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon"
+export CARBON="$EASY_FFMPEG_ROOT/carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon"
 export FFMPEG_BIN="${FFMPEG_BIN:-ffmpeg}"
 export FFPROBE_BIN="${FFPROBE_BIN:-ffprobe}"
 # Sanity: must be a valid Carbon tree; fail fast with clear message.

@@ -49,9 +49,7 @@ fn Run() -> i32 {
   let image: Cpp.std.string = Cpp.cli.get_flag_value("--image");
   let text: Cpp.std.string = Cpp.cli.get_flag_value("--text");
   let position: Cpp.std.string = Cpp.cli.get_flag_value("--position");
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.str_ne(image, "")) {
     let img_err: i32 = Validate.ValidatePath(image);

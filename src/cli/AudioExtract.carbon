@@ -38,9 +38,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.Add(Constants.FlagVn());
   let codec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");

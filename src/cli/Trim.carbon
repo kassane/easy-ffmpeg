@@ -41,9 +41,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   let sseof: Cpp.std.string = Cpp.cli.get_flag_value("--sseof");
   if (Cpp.str_ne(sseof, "")) { ArgsBuilder.AddFlagValue(Constants.FlagSseof(), sseof); }
   let start: Cpp.std.string = Cpp.cli.get_flag_value("--start");

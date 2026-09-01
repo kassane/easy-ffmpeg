@@ -56,9 +56,7 @@ fn Run() -> i32 {
     return Constants.ExitFailure();
   }
   let filter_complex: Cpp.std.string = Cpp.build_speed_filter_complex(factor);
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagFilterComplex(), filter_complex);
   ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("[v]"));

@@ -32,6 +32,19 @@ fn ShowHelp() {
   Core.PrintStr("  easy-ffmpeg resize video.mp4 out.mp4 --width 320 --height 240\n");
 }
 
+// Build the common ffmpeg command for a scale filter and execute/dry-run.
+fn RunWithFilter(filter: Cpp.std.string, input: Cpp.std.string, output: Cpp.std.string) -> i32 {
+  ArgsBuilder.StartFfmpeg();
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
+  ArgsBuilder.Add(output);
+  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
+  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
+  let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
+  Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
+  return rc;
+}
+
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
   if (Cpp.cli.positional_count() < 1) {
@@ -61,29 +74,11 @@ fn Run() -> i32 {
   let w: Cpp.std.string = Cpp.cli.get_flag_value("--width");
   let h: Cpp.std.string = Cpp.cli.get_flag_value("--height");
   if (Cpp.str_eq(scale, "tiktok")) {
-    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), "");
-    ArgsBuilder.Clear();
-    ArgsBuilder.Add(Constants.FfmpegBin());
-    ArgsBuilder.Add(Constants.FlagOverwrite());
-    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
-    ArgsBuilder.Add(output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), ""), input, output);
   } else if (Cpp.str_eq(scale, "instagram")) {
-    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), "");
-    ArgsBuilder.Clear();
-    ArgsBuilder.Add(Constants.FfmpegBin());
-    ArgsBuilder.Add(Constants.FlagOverwrite());
-    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
-    ArgsBuilder.Add(output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), ""), input, output);
   } else if (Cpp.str_eq(scale, "youtube")) {
-    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), "");
-    ArgsBuilder.Clear();
-    ArgsBuilder.Add(Constants.FfmpegBin());
-    ArgsBuilder.Add(Constants.FlagOverwrite());
-    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
-    ArgsBuilder.Add(output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), ""), input, output);
   } else if (Cpp.str_ne(scale, "")) {
     let h_str: Cpp.std.string = Cpp.scale_height(scale);
     if (Cpp.str_eq(h_str, "0")) {
@@ -91,35 +86,16 @@ fn Run() -> i32 {
       Core.PrintStr("\n");
       return Constants.ExitFailure();
     }
-    let filter: Cpp.std.string = Cpp.strh.concat3("scale=-2:", h_str, "");
-    ArgsBuilder.Clear();
-    ArgsBuilder.Add(Constants.FfmpegBin());
-    ArgsBuilder.Add(Constants.FlagOverwrite());
-    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
-    ArgsBuilder.Add(output);
+    return RunWithFilter(Cpp.strh.concat3("scale=-2:", h_str, ""), input, output);
   } else if (Cpp.str_ne(w, "")) {
     if (Cpp.str_eq(h, "")) {
       Core.PrintStr(Cpp.color.red("error: --height required with --width"));
       Core.PrintStr("\n");
       return Constants.ExitFailure();
     }
-    let filter: Cpp.std.string = Cpp.strh.concat3("scale=", w, ":");
-    let filter_full: Cpp.std.string = Cpp.strh.concat3(filter, h, "");
-    ArgsBuilder.Clear();
-    ArgsBuilder.Add(Constants.FfmpegBin());
-    ArgsBuilder.Add(Constants.FlagOverwrite());
-    ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
-    ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter_full);
-    ArgsBuilder.Add(output);
-  } else {
-    Core.PrintStr(Cpp.color.red("error: --scale or --width + --height required"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
+    return RunWithFilter(Cpp.strh.concat3(Cpp.strh.concat3("scale=", w, ":"), h, ""), input, output);
   }
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  let rc: i32 = Process.ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
-  Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return rc;
+  Core.PrintStr(Cpp.color.red("error: --scale or --width + --height required"));
+  Core.PrintStr("\n");
+  return Constants.ExitFailure();
 }

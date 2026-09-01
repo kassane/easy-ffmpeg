@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.2] - 2026-09-01
+
+### Changed
+
+- **ArgsBuilder helpers**: `StartFfmpeg()` (Clear+FfmpegBin+FlagOverwrite), `StartBuild(tc)`, `AddMany` through `AddMany5` reduce boilerplate across 14 CLI files and build.carbon.
+- **Resize dedup**: extracted `RunWithFilter()` — 5 identical code paths collapsed to one.
+- **ffi_helper dedup**: extracted `probe_stream_codec()` (dedup `probe_codecs`), `escape_concat_entry()` (dedup concat builders), `probe_duration_str()` reuses `probe_duration_ms()`.
+- **build.carbon**: extracted `VerboseCmd()`, uses `AddMany3/4/5` and `StartBuild()`.
+- **README.md**: fixed toolchain date, test counts, inaccurate C++ interop claims.
+- **docs/CARBON_TOOLCHAIN.md**: added empirical feature test results (OOP, Range, match, C++ interop, Optional).
+- **AGENTS.md**: added toolchain features tested section (2026-09-01).
+
+### Fixed
+
+- `resolve_carbon()` hardcoded toolchain path `2026.08.29` — now `2026.09.01`.
+
 ## [0.2.1] - 2026-09-01
 
 ### Fixed
@@ -10,6 +26,10 @@
   without string serialization, preventing corruption of paths with spaces.
 - **Constant consolidation**: removed duplicates (CodecCopy/FlagCodecCopy,
   CodecNameH264/CodecH264, CodecNameAac/CodecAac), fixed typo FlagSsseof.
+- **operator== workaround**: added `str_eq`/`str_ne`/`i_to_str` C++ helpers;
+  replaced all string `==`/`!=` in 16 CLI files (51 call sites) to work around
+  Carbon nightly operator== lowering bug (persists through 0.9.01).
+- **Compress exit code bug**: `return Constants.ExitSuccess()` → `return rc`.
 
 ### Security
 
@@ -20,10 +40,21 @@
 
 ### Changed
 
+- Upgraded toolchain from 0.8.29 to 0.9.01 (`scripts/env.sh`, `AGENTS.md`).
 - Upgraded build from C++17 to C++23.
 - `std::format` replaces `snprintf` in `atempo_chain`.
 - `std::from_chars` replaces `std::stol`/`std::stod` (zero-exception parsing).
 - `std::ifstream` replaces `fopen`/`fgets`/`fclose` in `read_carbon_src`.
+- `constexpr` on pure functions (`validate_numeric`, `stoi`).
+- `[[nodiscard]]` on `argv_run_shell()` and `argv_run_exec()`.
+- `std::string_view` params for `build_watermark_filter`, `build_rotate_filter`, `build_subtitle_filter`.
+- Removed unused `<span>` include from `ffi_helper.hpp`.
+- Gif.carbon simplified: uses int constants directly (no stoi conversion).
+- Magic number constants added: `NotFoundIndex()`, `SafeZero()`, `VframesOne()`, `DefaultGifFps()`, `DefaultGifWidth()`, `DefaultThumbnailTime()`.
+- 10 CLI files: `Add`+`Add` consolidated to `AddFlagValue`.
+- Deleted stale `docs/TODO.md`, `docs/VERIFICATION.md`, `tests/test_new_dry_run.sh`.
+- `tests/fixtures/in.srt` created for subtitle dry-run tests.
+- `scripts/debug.py` rewritten: 8 test sections, `--section`/`--json` flags.
 
 ## [0.2.0] - 2026-09-01
 

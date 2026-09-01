@@ -15,8 +15,8 @@ jobs:
         include:
           - os: ubuntu-latest
             name: Linux x86_64
-            carbon_archive: carbon_toolchain-0.0.0-0.nightly.2026.08.29.tar.gz
-            carbon_dir: carbon_toolchain-0.0.0-0.nightly.2026.08.29
+            carbon_archive: carbon_toolchain-0.0.0-0.nightly.2026.09.01.tar.gz
+            carbon_dir: carbon_toolchain-0.0.0-0.nightly.2026.09.01
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -37,7 +37,7 @@ jobs:
           CARBON_ARCHIVE: ${{ matrix.carbon_archive }}
           CARBON_DIR: ${{ matrix.carbon_dir }}
         run: |
-          curl -fsSL -O "https://github.com/carbon-language/carbon-lang/releases/download/v0.0.0-0.nightly.2026.08.29/${CARBON_ARCHIVE}"
+          curl -fsSL -O "https://github.com/carbon-language/carbon-lang/releases/download/v0.0.0-0.nightly.2026.09.01/${CARBON_ARCHIVE}"
           if [[ "${CARBON_ARCHIVE}" == *.zip ]]; then unzip -q "${CARBON_ARCHIVE}"; else tar -xf "${CARBON_ARCHIVE}"; fi
 
       - name: Add carbon to PATH
@@ -56,6 +56,7 @@ jobs:
           carbon build \
             build.carbon \
             src/core/ArgsBuilder.carbon \
+            src/core/Constants.carbon \
             --output=build \
             -- -std=c++23 -Isrc/core
           ./build --verbose

@@ -65,14 +65,22 @@ ffmpeg -y -i h264_aac.mkv -c:v copy -c:a copy output.mp4   # instant, zero quali
 ## Build
 
 ```sh
+# make build tool
+carbon build \
+            build.carbon \
+            src/core/ArgsBuilder.carbon \
+            src/core/Constants.carbon \
+            --output=build \
+            -- -std=c++23 -Isrc/core
 ./build              # build only
+./build --verbose    # build verbosed
 ./build --once       # build + all tests
 ./build --ci         # format + lint + build + smoke
 ./build --check      # validation only
 ./build --clean      # remove artifacts
 ```
 
-Requirements: `ffmpeg >= 6`, `ffprobe`, `libgcc-11-dev`.
+Requirements: `ffmpeg >= 6`, `ffprobe`.
 
 ## License
 See [MIT-LICENSE](LICENSE) - FFmpeg is an external dependency.

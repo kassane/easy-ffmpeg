@@ -46,9 +46,7 @@ fn Run() -> i32 {
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.cli.has_flag("--strip") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagMapMetadata(), Cpp.strh.make("-1"));

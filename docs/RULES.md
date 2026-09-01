@@ -82,5 +82,5 @@
 ## 6. Attribution
 
 * AI-generated commits must include `Assisted-by: <agent-name>` in the commit trailer.
-* Format: `Assisted-by: <model-name>`.
+* Format: `Assisted-by: <model-name>` (e.g., `Assisted-by: mimo-v2.5-free`).
 * Human-authored commits do not need this tag.

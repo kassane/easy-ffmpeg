@@ -3,7 +3,7 @@
 package Constants library "core/constants";
 
 // ── Version ────────────────────────────────────────────────────────────────
-fn Version() -> Core.String { return "0.2.1"; }
+fn Version() -> Core.String { return "0.2.2"; }
 
 // ── Exit codes ─────────────────────────────────────────────────────────────
 fn ExitSuccess() -> i32 { return 0; }

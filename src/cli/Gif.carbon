@@ -47,8 +47,8 @@ fn Run() -> i32 {
   }
   let fps_str: Cpp.std.string = Cpp.cli.get_flag_value("--fps");
   let width_str: Cpp.std.string = Cpp.cli.get_flag_value("--width");
-  var fps: i32 = Cpp.stoi(Cpp.i_to_str(Constants.DefaultGifFps()));
-  var width: i32 = Cpp.stoi(Cpp.i_to_str(Constants.DefaultGifWidth()));
+  var fps: i32 = Constants.DefaultGifFps();
+  var width: i32 = Constants.DefaultGifWidth();
   if (Cpp.str_ne(fps_str, "")) {
     if (Cpp.validate_numeric(fps_str) == 0) {
       Core.PrintStr(Cpp.color.red("error: --fps must be a number"));
@@ -76,9 +76,7 @@ fn Run() -> i32 {
     }
   }
   let filter: Cpp.std.string = Cpp.build_gif_filter(fps, width);
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
   ArgsBuilder.Add(output);

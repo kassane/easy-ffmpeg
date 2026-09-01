@@ -60,9 +60,7 @@ fn Run() -> i32 {
     Core.PrintStr("\n");
     return Constants.ExitFileNotFound();
   }
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), audio);
   ArgsBuilder.AddFlagValue(Constants.FlagMap(), Cpp.strh.make("0:v"));

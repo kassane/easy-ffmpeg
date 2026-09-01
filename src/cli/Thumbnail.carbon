@@ -47,9 +47,7 @@ fn Run() -> i32 {
   }
   let time: Cpp.std.string = Cpp.cli.get_flag_value("--time");
   let every: Cpp.std.string = Cpp.cli.get_flag_value("--every");
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.str_ne(every, "")) {
     if (Cpp.validate_numeric(every) == 0) {

@@ -1,18 +1,18 @@
-# Carbon Toolchain Notes (2026-08-29 nightly)
+# Carbon Toolchain Notes (2026-09-01 nightly)
 
 > Verbatim ground truth from `carbon --help`, `carbon build --help`, `carbon compile --help`, `carbon link --help`, and `$CARBON config`. This is the executable source of build truth; docs must not drift from it.
 
 ## Version
 
 ```
-Carbon Language toolchain version: 0.0.0-0.nightly.2026.08.29+f519ccc
-Install root: $PWD/carbon_toolchain-0.0.0-0.nightly.2026.08.29/lib/carbon/
+Carbon Language toolchain version: 0.0.0-0.nightly.2026.09.01+f519ccc
+Install root: $PWD/carbon_toolchain-0.0.0-0.nightly.2026.09.01/lib/carbon/
 Default target: x86_64-unknown-linux-gnu
 ```
 
 Resolve always via `scripts/env.sh`:
 ```sh
-export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon
+export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon
 ```
 
 ## Build / Compile / Link
@@ -48,7 +48,7 @@ export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon
 
 - Reference doc: `docs/ARCHITECTURE.md` data-flow, `docs/RULES.md` constraints, `README.md` quickstart.
 
-## Verified interop + entry-point gotchas (empirically tested 2026-08-29)
+## Verified interop + entry-point gotchas (empirically tested 2026-09-01)
 
 * **Entry function is `fn Run()`, NOT `fn Main() -> i32`.** Linking `fn Main() -> i32` produces `undefined symbol: main` because the runtime expects `_CMain.Run` (the prelude supplies the real C `main` that calls `Run`). Docs example `fn Run() { Core.Print(42); }` builds and runs cleanly.
 * **`Cpp.char*` does not parse** — `char` is a Carbon reserved word; `as Cpp.char*` errors. Cast through what imports: `Cpp.putchar(c as i32)` with `let c: Core.Char = 'H';` works (Char adapts u8, converts to i32).
@@ -66,9 +66,54 @@ export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon
   // carbon build full.carbon --output=full && ./full   => "H\n42"
   ```
 * **`fn Run()` has no `-> i32`** — it returns nothing; return process code implicitly ok (docs demo runs rc=0).
-* **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` (plus `expression pattern` semantics TODO). You **must** annotate explicitly: `let x: i32 = 42;`. This is a hard toolchain constraint on 2026.08.29 nightly — every `let` needs an explicit type. See `MEMORY.md` `carbon/let-type-inference-disabled`.
+* **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` (plus `expression pattern` semantics TODO). You **must** annotate explicitly: `let x: i32 = 42;`. This is a hard toolchain constraint on 2026.09.01 nightly — every `let` needs an explicit type. See `MEMORY.md` `carbon/let-type-inference-disabled`.
 * **Custom headers compile/link** — `import Cpp library "ffi_helper.hpp"` works when the include dir is passed after `--`: `carbon build src/main.carbon src/core/*.carbon --output=/tmp/out -- -std=c++23 -Isrc/core`. Without `-Isrc/core`, the header isn't found.
 * **`process::run_str()` via std::string bridge** — Carbon wraps VALUE types like `Cpp.std.string` fine. Recipe: `Cpp.strh.make(Core.String)` → `Cpp.std.string`, then `process::run_str(cmd)`. Verified: runs ffmpeg safely via fork+execvp. For build tool glob expansion only: `run_shell()` wraps `std::system()`.
 * **CRASH: cross-package `let` constant refs** — `let x: Core.String = Constants.FfmpegBin;` (referencing a package-level `let` from another package) triggers a CHECK failure in lowering: `const_id.is_concrete()`. Workaround: use **functions** in `Constants.carbon` (`fn FfmpegBin() -> Core.String`), which work cross-package. See `MEMORY.md` `cpp_compiler_crash.md`.
 * **`!bool` not supported** — use `x == false` instead.
 * **`x as i32`** cast works; `i32(x)` function-style cast does NOT.
+
+## Verified language features (empirically tested 2026-09-01)
+
+### OOP: class/impl/self
+
+Works. The self parameter uses bare `self` with no type annotation (matching prelude pattern).
+
+```carbon
+class Point {
+  var x: i32;
+  var y: i32;
+
+  fn Make(x: i32, y: i32) -> Self {
+    return {.x = x, .y = y};
+  }
+
+  fn DistanceSquared(self, other: Point) -> i32 {
+    let dx: i32 = self.x - other.x;
+    let dy: i32 = self.y - other.y;
+    return dx * dx + dy * dy;
+  }
+}
+```
+
+Entry files (no `package` declaration) need `ArgsBuilder.carbon` linked and `-std=c++23 -Isrc/core` passed to compile. Files with `package Foo library "foo"` need the same flags but also require the entry file to have no package.
+
+### Range / InclusiveRange
+
+Defined in `prelude/range.carbon` but `Range` is **not found** at call site on this nightly. Both `Range(5)` and `InclusiveRange(1, 3)` fail with `name 'Range' not found`. The prelude source defines them as free functions returning `IntRange(32)`, but name resolution does not reach them yet. Use `while` loops instead.
+
+### match / switch / choice
+
+All three are **semantics TODO** on 0.9.01. `match (x) { case 1: ... }` errors with `HandleMatchIntroducer`. `choice` with parameters errors with `choice alternatives with parameters are not yet supported`. `switch` on choice types also fails. Dispatch with `if` chains.
+
+### C++ STL interop
+
+`std::string` works as a Carbon type (`Cpp.std.string`). `std::vector<T>` template instantiation compiles but the bundled libcxx has header ordering bugs (`synth_three_way.h` not included before use) that cause hard errors when `<vector>` is included. Our `ffi_helper.hpp` avoids this by not including `<vector>` from Carbon. Keep C++ container usage inside `ffi_helper.hpp` where `<algorithm>` is included before headers that need it.
+
+### CppRange
+
+The `CppRange` interface is defined in the prelude and allows iterating C++ containers with `for` loops, but since the container headers don't compile from Carbon, CppRange interop is blocked by the same libcxx bug. Not usable yet.
+
+### Optional
+
+`Optional(T)` works in prelude: `Optional(i32).Some(42)`, `Optional(i32).None()`, `.HasValue()`, `.Get()`. Not used in the project yet; empty string checks (`str_eq(x, "")`) serve the same purpose and are simpler given current interop constraints.

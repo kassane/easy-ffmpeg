@@ -11,7 +11,7 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 "$CARBON" format src/**/*.carbon
 ```
 
-- Toolchain binary: `carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon`. Resolve via `scripts/env.sh`, never hardcode in source.
+- Toolchain binary: `carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon`. Resolve via `scripts/env.sh`, never hardcode in source.
 - `build` extra args go after `--`: `"$CARBON" build f.carbon -- -I... -lavcodec`. Bare `-o` errors; always use `--output=NAME`.
 - On-demand link needs `libgcc-11-dev` (per official docs).
 
@@ -65,5 +65,15 @@ When AI agents contribute code, commit messages must include `Assisted-by: <agen
 fix: handle empty codec string
 
 Co-authored-by: human <user@example.com>
-Assisted-by: <agent-name>
+Assisted-by: mimo-v2.5-free
 ```
+
+## Toolchain features tested (2026-09-01)
+
+- **OOP works**: `class Foo { var x: i32; fn Make(...) -> Self { ... } fn Method(self, ...) { ... } }`. Self parameter is bare `self` with no type annotation. Comptime struct init: `return {.x = val}`.
+- **Range/InclusiveRange**: Defined in prelude source but name resolution fails on 0.9.01. Use `while` loops.
+- **match/switch/choice**: All semantics TODO. Use `if` chains.
+- **C++ `<vector>` from Carbon**: Libcxx header ordering bug blocks it. Keep STL usage inside `ffi_helper.hpp` where includes are ordered correctly.
+- **CppRange**: Interface exists but unusable due to libcxx header bug.
+- **Optional**: Works (`Optional(i32).Some(42)`, `.None()`, `.HasValue()`, `.Get()`). Not used yet.
+- **AddMany/StartFfmpeg helpers**: `ArgsBuilder.AddMany(a,b)` through `AddMany5(...)` reduce boilerplate. `ArgsBuilder.StartFfmpeg()` does `Clear + Add(FfmpegBin) + Add(FlagOverwrite)`.

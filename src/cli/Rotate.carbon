@@ -47,9 +47,7 @@ fn Run() -> i32 {
   }
   let angle: Cpp.std.string = Cpp.cli.get_flag_value("--angle");
   let flip: Cpp.std.string = Cpp.cli.get_flag_value("--flip");
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   if (Cpp.str_ne(angle, "")) {
     if (Cpp.str_ne(angle, "90") and Cpp.str_ne(angle, "180") and Cpp.str_ne(angle, "270")) {

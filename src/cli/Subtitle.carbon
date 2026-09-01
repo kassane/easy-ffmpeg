@@ -62,9 +62,7 @@ fn Run() -> i32 {
     return Constants.ExitFileNotFound();
   }
   let filter: Cpp.std.string = Cpp.build_subtitle_filter(srt);
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
   ArgsBuilder.Add(output);

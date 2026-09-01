@@ -47,9 +47,7 @@ fn Run() -> i32 {
     return Constants.ExitFailure();
   }
   let filter: Cpp.std.string = Cpp.build_normalize_filter();
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfmpegBin());
-  ArgsBuilder.Add(Constants.FlagOverwrite());
+  ArgsBuilder.StartFfmpeg();
   ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
   ArgsBuilder.AddFlagValue(Constants.FlagAudioFilter(), filter);
   ArgsBuilder.Add(output);

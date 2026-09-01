@@ -339,6 +339,13 @@ inline std::vector<std::string> read_carbon_src() {
         goto next_line;
       }
     }
+    // Skip build/compiler flags (e.g. -std=c++23)
+    if (content.find("-std=") != std::string::npos ||
+        content.find("-I") != std::string::npos ||
+        content.find("-L") != std::string::npos ||
+        content.find("-l") != std::string::npos) {
+      goto next_line;
+    }
     // Check magic numbers (word-bounded)
     for (auto *num : magic_nums) {
       size_t pos = 0;
@@ -453,7 +460,8 @@ inline std::string concat3(std::string_view a, std::string_view b,
 }
 } // namespace strh
 
-// === String comparison helpers (Carbon nightly can't lower operator== for std::string) ===
+// === String comparison helpers (Carbon nightly can't lower operator== for
+// std::string) ===
 inline bool str_eq(std::string_view a, std::string_view b) { return a == b; }
 inline bool str_ne(std::string_view a, std::string_view b) { return a != b; }
 inline std::string i_to_str(int i) { return std::to_string(i); }
@@ -486,27 +494,25 @@ inline std::string escape_drawtext(std::string_view text) {
   return "0";
 }
 
-// === Probe codecs ===
-[[nodiscard]] inline std::string probe_codecs(std::string ffprobe,
-                                              std::string input) {
-  std::string safe_input = std::string(input);
-  std::string cmd = std::string(ffprobe) +
-                    " -v quiet -select_streams v:0 -show_entries "
-                    "stream=codec_name -of csv=p=0 " +
-                    safe_input;
+// Probe a single stream's codec name.
+[[nodiscard]] inline std::string probe_stream_codec(std::string_view ffprobe,
+                                                    std::string_view input,
+                                                    std::string_view stream) {
+  std::string cmd = std::string(ffprobe) + " -v quiet -select_streams " +
+                    std::string(stream) +
+                    " -show_entries stream=codec_name -of csv=p=0 " +
+                    std::string(input);
   std::string raw = process::run_capture(cmd);
   while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
     raw.pop_back();
-  std::string vcodec = raw;
-  std::string cmd2 = std::string(ffprobe) +
-                     " -v quiet -select_streams a:0 -show_entries "
-                     "stream=codec_name -of csv=p=0 " +
-                     safe_input;
-  std::string raw2 = process::run_capture(cmd2);
-  while (!raw2.empty() && (raw2.back() == '\n' || raw2.back() == '\r'))
-    raw2.pop_back();
-  std::string acodec = raw2;
-  return vcodec + "," + acodec;
+  return raw;
+}
+
+// === Probe codecs ===
+[[nodiscard]] inline std::string probe_codecs(std::string ffprobe,
+                                              std::string input) {
+  return probe_stream_codec(ffprobe, input, "v:0") + "," +
+         probe_stream_codec(ffprobe, input, "a:0");
 }
 
 // === Path helpers ===
@@ -725,7 +731,7 @@ template <typename Container>
   std::string from_path = find_in_path("carbon");
   if (!from_path.empty())
     return from_path;
-  return cwd() + "/carbon_toolchain-0.0.0-0.nightly.2026.08.29/bin/carbon";
+  return cwd() + "/carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon";
 }
 
 // === String-to-int conversion (Carbon has no stoi) ===
@@ -764,37 +770,31 @@ template <typename Container>
   return 1;
 }
 
+// Escape a single-quote in concat file list entries.
+inline std::string escape_concat_entry(std::string_view s) {
+  std::string r;
+  r.reserve(s.size() + 4);
+  for (char c : s) {
+    if (c == '\'')
+      r += "'\\''";
+    else
+      r += c;
+  }
+  return r;
+}
+
 // === Concat file list builder (2 files) ===
 inline std::string build_concat_list_2(std::string_view a, std::string_view b) {
-  auto esc = [](std::string_view s) -> std::string {
-    std::string r;
-    for (char c : s) {
-      if (c == '\'')
-        r += "'\\''";
-      else
-        r += c;
-    }
-    return r;
-  };
-  return "file '" + esc(a) + "'\nfile '" + esc(b) + "'\n";
+  return "file '" + escape_concat_entry(a) + "'\nfile '" +
+         escape_concat_entry(b) + "'\n";
 }
 
 // === Concat file list builder (vector) ===
 inline std::string build_concat_list(const std::vector<std::string> &files) {
-  auto esc = [](std::string_view s) -> std::string {
-    std::string r;
-    for (char c : s) {
-      if (c == '\'')
-        r += "'\\''";
-      else
-        r += c;
-    }
-    return r;
-  };
   std::string list;
   list.reserve(files.size() * 30);
   for (const auto &f : files) {
-    list += "file '" + esc(f) + "'\n";
+    list += "file '" + escape_concat_entry(f) + "'\n";
   }
   return list;
 }
@@ -807,12 +807,12 @@ inline std::string speed_filter(std::string_view factor) {
 
 // === Probe video duration as string ===
 inline std::string probe_duration_str(std::string ffprobe, std::string input) {
-  std::string cmd =
-      ffprobe + " -v quiet -show_entries format=duration -of csv=p=0 " + input;
-  std::string raw = process::run_capture(cmd);
-  while (!raw.empty() && (raw.back() == '\n' || raw.back() == '\r'))
-    raw.pop_back();
-  return raw;
+  long ms = probe_duration_ms(ffprobe, input);
+  if (ms < 0)
+    return "";
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.3f", ms / 1000.0);
+  return std::string(buf);
 }
 
 // === Probe video resolution ===
