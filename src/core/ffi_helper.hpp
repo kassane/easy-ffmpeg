@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 #pragma once
 #include <cstdio>
 #include <cstdlib>
@@ -133,6 +136,55 @@ inline std::vector<const char*> to_argv(const std::vector<std::string>& toks) {
   if (pid == 0) {
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
+    close(pipefd[1]);
+    execvp(argv[0], const_cast<char* const*>(argv.data()));
+    _exit(127);
+  }
+  close(pipefd[1]);
+  std::string result;
+  char buf[512];
+  ssize_t n;
+  while ((n = read(pipefd[0], buf, sizeof(buf) - 1)) > 0) {
+    buf[n] = 0;
+    result += buf;
+  }
+  close(pipefd[0]);
+  int status;
+  waitpid(pid, &status, 0);
+  return result;
+#endif
+}
+
+// Like run_capture but also captures stderr (redirects to stdout via pipe).
+[[nodiscard]] inline std::string run_capture_stderr(std::string_view cmd) {
+#ifdef _WIN32
+  FILE* p = _popen(std::string(cmd).c_str(), "r");
+  if (!p) return "";
+  std::string result;
+  char buf[512];
+  while (fgets(buf, sizeof(buf), p)) result += buf;
+  _pclose(p);
+  return result;
+#else
+  int pipefd[2];
+  if (pipe(pipefd) < 0) return "";
+  auto toks = tokenize(cmd);
+  if (toks.empty()) {
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return "";
+  }
+  auto argv = to_argv(toks);
+  pid_t pid = fork();
+  if (pid < 0) {
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return "";
+  }
+  if (pid == 0) {
+    close(pipefd[0]);
+    dup2(pipefd[1], STDOUT_FILENO);
+    dup2(pipefd[1], STDERR_FILENO);
     close(pipefd[1]);
     execvp(argv[0], const_cast<char* const*>(argv.data()));
     _exit(127);

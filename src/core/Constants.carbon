@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 // All magic strings, numbers, and codec choices in one place.
 // Functions, not `let` constants: cross-package `let` crashes this nightly.
 package Constants library "core/constants";

@@ -184,3 +184,7 @@ check_contains "crop: crop filter" "crop=320:240:0:0" "$OUT"
 
 OUT=$($BIN crop $FIX /tmp/o.mp4 --width 640 --height 480 --x 100 --y 50 --dry-run 2>&1)
 check_contains "crop with offset" "crop=640:480:100:50" "$OUT"
+
+echo "=== colordetect ==="
+OUT=$($BIN colordetect $FIX --dry-run 2>&1)
+check_contains "colordetect: colordetect filter" "colordetect" "$OUT"

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 // Single exec path. All process execution goes through Exec().
 // Bridges Carbon strings to C system() via std::string in ffi_helper.hpp.
 package Process library "core/process";
@@ -13,4 +16,9 @@ fn Exec(cmd: Cpp.std.string) -> i32 {
 fn ExecProgress(cmd: Cpp.std.string, ffprobe: Cpp.std.string, input: Cpp.std.string) -> i32 {
   let total_ms: i64 = Cpp.probe_duration_ms(ffprobe, input);
   return Cpp.run_progress(cmd, total_ms);
+}
+
+// Runs a command and captures stdout.
+fn RunCapture(cmd: Cpp.std.string) -> Cpp.std.string {
+  return Cpp.process.run_capture(cmd);
 }

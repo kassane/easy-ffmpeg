@@ -135,7 +135,7 @@ Quality improvements to existing commands:
 - [x] Security audit passed (3 criticals fixed: temp file race, filter injection, numeric validation)
 - [x] All 77 tests passing
 
-Exit: `./easy-ffmpeg --help` lists 16 commands, all dry-run tests pass.
+Exit: `./easy-ffmpeg --help` lists 17 commands, all dry-run tests pass.
 
 ## Phase 6 — Optional libav* Migration (post-0.2)
 

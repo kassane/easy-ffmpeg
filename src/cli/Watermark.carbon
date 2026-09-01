@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 package Watermark library "cli/watermark";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";

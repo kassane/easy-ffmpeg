@@ -1,23 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Matheus C. Franca
-
-package Probe library "cli/probe";
-import ArgsBuilder library "core/args";
+package Colordetect library "cli/colordetect";
 import Constants library "core/constants";
 import Core library "io";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
 import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
-  Core.PrintStr(" easy-ffmpeg probe <input>\n");
-  Core.PrintStr("  --json       Output as JSON\n");
-  Core.PrintStr("  --dry-run    Print ffprobe command without executing\n");
+  Core.PrintStr(" easy-ffmpeg colordetect <input>\n");
   Core.PrintStr("\n");
-  Core.PrintStr(Cpp.color.bold("Examples:\n"));
-  Core.PrintStr("  easy-ffmpeg probe video.mp4\n");
-  Core.PrintStr("  easy-ffmpeg probe video.mp4 --json\n");
+  Core.PrintStr(Cpp.color.bold("Description:\n"));
+  Core.PrintStr("  Detects video color properties (range, alpha mode).\n");
 }
 
 fn Run() -> i32 {
@@ -39,17 +33,22 @@ fn Run() -> i32 {
     Core.PrintStr("\n");
     return Constants.ExitFileNotFound();
   }
-  ArgsBuilder.Clear();
-  ArgsBuilder.Add(Constants.FfprobeBin());
-  ArgsBuilder.AddFlagValue(Constants.FlagVerbosity(), Constants.QuietValue());
-  if (Cpp.cli.has_flag("--json") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagPrintFormat(), Constants.JsonValue());
-  }
-  ArgsBuilder.Add(Constants.FlagShowStreams());
-  ArgsBuilder.Add(input);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
+  let cmd: Cpp.std.string = Cpp.strh.concat3(
+    "ffmpeg -i ", input, " -vf colordetect -f null -");
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  let rc: i32 = Process.Exec(cmd);
-  Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return rc;
+  let out: Cpp.std.string = Cpp.process.run_capture_stderr(cmd);
+  Core.PrintStr(Cpp.color.bold("Color properties:\n"));
+  let rs: u64 = out.find("Color range:");
+  if (rs != Constants.NotFoundIndex()) {
+    var re: u64 = out.find("\n", rs);
+    if (re == Constants.NotFoundIndex()) { re = out.size(); }
+    Core.PrintStr("  "); Core.PrintStr(out.substr(rs, re - rs)); Core.PrintStr("\n");
+  }
+  let aa: u64 = out.find("Alpha mode:");
+  if (aa != Constants.NotFoundIndex()) {
+    var ae: u64 = out.find("\n", aa);
+    if (ae == Constants.NotFoundIndex()) { ae = out.size(); }
+    Core.PrintStr("  "); Core.PrintStr(out.substr(aa, ae - aa)); Core.PrintStr("\n");
+  }
+  return Constants.ExitSuccess();
 }

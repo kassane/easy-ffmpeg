@@ -7,7 +7,7 @@
                                        │ argv[1] == Constants.Cmd*
                      ┌─────────────────┼─────────────────┐
                      ▼                 ▼                 ▼
-              CliConvert        CliCompress        CliTrim        ... (16 files in src/cli/*.carbon)
+              CliConvert        CliCompress        CliTrim        ... (17 files in src/cli/*.carbon)
                      │                 │                 │
                      └─────────────────┼─────────────────┘
                                        ▼

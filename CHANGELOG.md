@@ -9,7 +9,10 @@
 - **JPEG XL compression**: `--jxl` flag for `compress` (uses `libjxl`).
 - **Compiler hardening**: `-Wall -Wextra -fstack-protector-strong -D_FORTIFY_SOURCE=2` in `ArgsBuilder.StartBuild()` and Makefile.
 - **`carbon clang` docs**: documented standalone C++ compilation, `-fexperimental-library`, `<filesystem>`/`<memory_resource>` support.
+- **colordetect subcommand**: detect video color properties (range, alpha mode).
 - **crop tests**: dry-run (2 checks) + security (missing input, valid input).
+- **`run_capture_stderr()`**: C++ helper for capturing both stdout and stderr from commands.
+- **`Process.RunCapture()`**: Carbon wrapper for `run_capture` (stdout only).
 
 ### Fixed
 
@@ -20,7 +23,7 @@
 
 ### Changed
 
-- Test counts: 56 dry-run, 52 security, 14 exit, 3 progress, 24 smoke (149 total).
+- Test counts: 57 dry-run, 54 security, 14 exit, 3 progress, 24 smoke (152 total).
 
 ## [0.2.3] - 2026-09-01
 

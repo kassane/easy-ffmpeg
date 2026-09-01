@@ -46,7 +46,7 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 
 ## Subcommand → ffmpeg mapping source of truth
 
-See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). 16 commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`, `concat`, `gif`, `thumbnail`, `speed`, `rotate`, `watermark`, `subtitle`, `metadata`, `normalize`, `replace-audio`.
+See `docs/FFMPEG_COVERAGE.md` (generated) and `docs/ARCHITECTURE.md` (data flow). 17 commands: `convert`, `compress`, `trim`, `resize`, `audio-extract`, `probe`, `concat`, `gif`, `thumbnail`, `speed`, `rotate`, `watermark`, `subtitle`, `metadata`, `normalize`, `replace-audio`, `crop`.
 
 ## Build command (mandatory)
 
@@ -87,5 +87,6 @@ After every code change, run `make fmt` before committing. This formats Carbon f
 - **match/switch/choice**: All semantics TODO. Use `if` chains.
 - **C++ `<vector>` from Carbon**: Libcxx header ordering bug blocks it. Keep STL usage inside `ffi_helper.hpp` where includes are ordered correctly.
 - **CppRange**: Interface exists but unusable due to libcxx header bug.
+  - **interface/impl generics**: Parse without error but method dispatch broken ("member name not found"). Not usable yet.
 - **Optional**: Works (`Optional(i32).Some(42)`, `.None()`, `.HasValue()`, `.Get()`). Not used yet.
 - **AddMany/StartFfmpeg helpers**: `ArgsBuilder.AddMany(a,b)` through `AddMany5(...)` reduce boilerplate. `ArgsBuilder.StartFfmpeg()` does `Clear + Add(FfmpegBin) + Add(FlagOverwrite)`.

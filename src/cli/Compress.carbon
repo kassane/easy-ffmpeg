@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 package Compress library "cli/compress";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";

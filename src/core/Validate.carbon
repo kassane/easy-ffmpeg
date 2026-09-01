@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Matheus C. Franca
+
 // Input validation before any process execution.
 // String parsing/comparison happens in C++ (Carbon lacks string == and slicing).
 package Validate library "core/validate";

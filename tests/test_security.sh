@@ -94,3 +94,5 @@ echo ""
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" = "0" ] || exit 1
 check_exit "crop missing input" 3 $BIN crop nonexistent.mp4 /tmp/o.mp4 --width 320 --height 240 --dry-run
+check_exit "colordetect missing input" 3 $BIN colordetect nonexistent.mp4 --dry-run
+check_exit "colordetect valid" 0 $BIN colordetect $FIX --dry-run
