@@ -4,7 +4,9 @@
 // Single exec path. All process execution goes through Exec().
 // Bridges Carbon strings to C system() via std::string in ffi_helper.hpp.
 package Process library "core/process";
+import Core library "io";
 import Cpp library "ffi_helper.hpp";
+import Constants library "core/constants";
 
 // Runs a shell command. Returns exit code, or -1 on fork failure.
 // Input must be validated by Validate.carbon first.
@@ -21,4 +23,22 @@ fn ExecProgress(cmd: Cpp.std.string, ffprobe: Cpp.std.string, input: Cpp.std.str
 // Runs a command and captures stdout.
 fn RunCapture(cmd: Cpp.std.string) -> Cpp.std.string {
   return Cpp.process.run_capture(cmd);
+}
+
+// Execute with progress bar, print exit code, return it.
+fn ExecAndReport(cmd: Cpp.std.string, input: Cpp.std.string) -> i32 {
+  let rc: i32 = ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
+  Core.PrintStr("exit code=");
+  Core.Print(rc);
+  Core.PrintStr("\n");
+  return rc;
+}
+
+// Execute simple command, print exit code, return it.
+fn ExecSimple(cmd: Cpp.std.string) -> i32 {
+  let rc: i32 = Exec(cmd);
+  Core.PrintStr("exit code=");
+  Core.Print(rc);
+  Core.PrintStr("\n");
+  return rc;
 }

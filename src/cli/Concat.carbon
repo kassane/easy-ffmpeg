@@ -81,8 +81,7 @@ fn Run() -> i32 {
   ArgsBuilder.Add(output);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  let rc: i32 = Process.Exec(cmd);
+  let rc: i32 = Process.ExecSimple(cmd);
   Cpp.remove_temp_file(list_path);
-  Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
   return rc;
 }

@@ -28,17 +28,8 @@ fn Run() -> i32 {
     return Constants.ExitFailure();
   }
   let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let path_err: i32 = Validate.ValidatePath(input);
-  if (path_err == 1) {
-    Core.PrintStr(Cpp.color.red("error: path traversal not allowed"));
-    Core.PrintStr("\n");
-    return Constants.ExitSecurity();
-  }
-  if (path_err == 2) {
-    Core.PrintStr(Cpp.color.red("error: input file not found or not a regular file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFileNotFound();
-  }
+  let check_rc: i32 = Validate.CheckInput(input);
+  if (check_rc != 0) { return check_rc; }
   ArgsBuilder.Clear();
   ArgsBuilder.Add(Constants.FfprobeBin());
   ArgsBuilder.AddFlagValue(Constants.FlagVerbosity(), Constants.QuietValue());
@@ -49,7 +40,5 @@ fn Run() -> i32 {
   ArgsBuilder.Add(input);
   let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
   if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  let rc: i32 = Process.Exec(cmd);
-  Core.PrintStr("exit code="); Core.Print(rc); Core.PrintStr("\n");
-  return rc;
+  return Process.ExecSimple(cmd);
 }

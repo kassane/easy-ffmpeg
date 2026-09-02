@@ -12,6 +12,11 @@
 
 - **Dead C++ helpers**: `probe_codecs()`, `probe_resolution()`, `probe_duration_str()` (defined but never called).
 
+### Changed
+
+- **Validate.CheckInput()**: replaces 10-line path validation block in 17 CLI files.
+- **Process.ExecAndReport() / ExecSimple()**: replaces 3-line exec + print pattern.
+
 ### Fixed
 
 - **Completions**: removed phantom `--to`/`--half`/`--double`/`--set`/`--duration`; added `--no-subs` on convert/compress, `--flip` on rotate.

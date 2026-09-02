@@ -1,5 +1,7 @@
 # AGENTS.md — easy-ffmpeg
 
+Must check [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly toolchain). This file is the fast-ramp for agents; full context lives in `docs/`.
 
 ## Build & run (correct order matters)
@@ -17,6 +19,8 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 
 ## Hard-won facts (you WILL get these wrong first time)
 
+Must check [docs/CARBON_TOOLCHAIN.md](docs/CARBON_TOOLCHAIN.md) for full details.
+
 - **Entry function is `fn Run()`, NOT `fn Main() -> i32`.** Using `Main` fails to link with `undefined symbol: main` (runtime expects `_CMain.Run`). Verified live.
 - **`Cpp.char*` does not parse** (`char` is reserved). Use `Cpp.putchar(c as i32)` with `let c: Core.Char = 'H';`. `'\n'.Code()` doesn't exist — use `10 as i32`.
 - **Working interop demo** (builds+runs, verified):
@@ -28,9 +32,12 @@ Friendly `ffmpeg`/`ffprobe` wrapper written in **Carbon** (vendored nightly tool
 - Prelude has **no `Vector`, `String.format`, or heap allocator**. Use `Array(String, MaxArgs)` + `len` (ponytail comment marks the ceiling). No `match` — dispatch with `if`.
 - **`let` does NOT infer types.** `let x = 42;` fails with `name 'x' not found` — you **must** annotate: `let x: i32 = 42;`. Every `let` needs an explicit type on 2026.09.01 nightly.
 - Exec goes through `process::run_str()` (fork+execvp, no shell) in `src/core/ffi_helper.hpp` — the ONLY place. No `libav*` import yet (0.1 nightly can't safely import `avcodec.h` templates).
+- **Inline C++**: `inline Cpp #'''...'''#` at file scope for small helpers. Use `ffi_helper.hpp` for shared code. See `docs/CARBON_TOOLCHAIN.md`.
 - **Every magic string/number lives in `src/core/Constants.carbon`** — `scripts/check-no-magic.sh` fails builds otherwise. Grep before adding.
 
 ## Workflow rules (from docs/RULES.md)
+
+Must check [docs/RULES.md](docs/RULES.md)
 
 - **No duplication**: one builder, one exec, one validator. All `"-c:v"`/`"h264"`/**codecs** flow through `Constants.carbon` → `ArgsBuilder` methods.
 - **Looping toolcall**: `scripts/loop-build.sh` (watch mode) or `--once` for one green check. Manual-review gate per `loop-engineering`.
@@ -73,7 +80,7 @@ When AI agents contribute code, commit messages must include `Assisted-by: <agen
 fix: handle empty codec string
 
 Co-authored-by: human <user@example.com>
-Assisted-by: mimo-v2.5-free
+Assisted-by: <agent-name>
 ```
 
 ## Formatting (post-change)
@@ -82,11 +89,8 @@ After every code change, run `make fmt` before committing. This formats Carbon f
 
 ## Toolchain features tested (2026-09-01)
 
-- **OOP works**: `class Foo { var x: i32; fn Make(...) -> Self { ... } fn Method(self, ...) { ... } }`. Self parameter is bare `self` with no type annotation. Comptime struct init: `return {.x = val}`.
-- **Range/InclusiveRange**: Defined in prelude source but name resolution fails on 0.9.01. Use `while` loops.
-- **match/switch/choice**: All semantics TODO. Use `if` chains.
-- **C++ `<vector>` from Carbon**: Libcxx header ordering bug blocks it. Keep STL usage inside `ffi_helper.hpp` where includes are ordered correctly.
-- **CppRange**: Interface exists but unusable due to libcxx header bug.
-  - **interface/impl generics**: Parse without error but method dispatch broken ("member name not found"). Not usable yet.
-- **Optional**: Works (`Optional(i32).Some(42)`, `.None()`, `.HasValue()`, `.Get()`). Not used yet.
-- **AddMany/StartFfmpeg helpers**: `ArgsBuilder.AddMany(a,b)` through `AddMany5(...)` reduce boilerplate. `ArgsBuilder.StartFfmpeg()` does `Clear + Add(FfmpegBin) + Add(FlagOverwrite)`.
+Must check [docs/CARBON_TOOLCHAIN.md](docs/CARBON_TOOLCHAIN.md) — full reference for what works and what doesn't.
+
+**Quick reference:**
+- Works: OOP, generics, interfaces, control flow, C++ FFI (C++23), Optional, inline C++
+- Doesn't work: Range, match/switch/choice, interface dispatch, class inheritance, tuple destructuring, default params, operator overloading, ternary, pointer arithmetic, varargs, `<vector>` from Carbon, lambda/std::function

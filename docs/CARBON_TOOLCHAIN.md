@@ -217,6 +217,44 @@ Tested via `carbon clang`:
 - `<memory>` — `std::unique_ptr`, `std::shared_ptr` work.
 - `<string_view>` — works (already used in `ffi_helper.hpp`).
 
+
+
+### Inline C++ (from toolchain internals)
+
+The `inline Cpp '''...'''#` syntax is confirmed in [`check/cpp/thunks.md`](https://github.com/carbon-language/carbon-lang/blob/v0.0.0-0.nightly.2026.09.01/toolchain/docs/check/cpp/thunks.md):
+
+```carbon
+import Cpp;
+
+inline Cpp '''
+class X { ... };
+X f(X x);
+''';
+```
+
+**Key patterns:**
+- Triple-quote string contains raw C++ code
+- Toolchain parses via Clang's AST
+- No special build flags needed (handled by `carbon build`)
+- Thunks are aggressively inlined (Carbon-side definition usually never generated)
+
+**Virtual function override pattern:**
+```carbon
+import Cpp;
+
+inline Cpp '''
+struct Base {
+  virtual void f(int x) = 0;
+};
+void CallBase(Base& b) { b.f(42); }
+''';
+```
+
+**Interop constraints (from thunks doc):**
+- Simplified ABI: pointer/ref, 32/64-bit int, void return
+- If C++ function already has simple ABI, call directly (no thunk)
+- Carbon overriding C++ virtual functions generates 3 thunks (complex, avoid if possible)
+
 ### std::filesystem for write_temp_file
 
 `write_temp_file()` currently uses POSIX `mkstemp()` + `rename()`. A future improvement could use `std::filesystem::temp_directory_path()` for cross-platform portability (Windows support). Not needed yet since the project targets Linux.

@@ -23,14 +23,12 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@main
-
       - name: Cache carbon toolchain
         id: cache-carbon
         uses: actions/cache@main
         with:
           path: ${{ matrix.carbon_dir }}
           key: carbon-${{ matrix.carbon_archive }}-v1
-
       - name: Download carbon toolchain
         if: steps.cache-carbon.outputs.cache-hit != 'true'
         env:
@@ -39,7 +37,6 @@ jobs:
         run: |
           curl -fsSL -O "https://github.com/carbon-language/carbon-lang/releases/download/v0.0.0-0.nightly.2026.09.01/${CARBON_ARCHIVE}"
           if [[ "${CARBON_ARCHIVE}" == *.zip ]]; then unzip -q "${CARBON_ARCHIVE}"; else tar -xf "${CARBON_ARCHIVE}"; fi
-
       - name: Add carbon to PATH
         env:
           CARBON_DIR: ${{ matrix.carbon_dir }}
@@ -49,18 +46,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
             sudo apt-get update
-            sudo apt-get install ffmpeg
-      
-      - name: Build application
-        run: |
-          make all 2>&1
-          ./build --verbose
-          ./build --check
-      
+            sudo apt-get install ffmpeg 
+      - name: Build all
+        run: make all 2>&1
+      - name: Check
+        run: ./build --check 2>&1
       - name: Testing
-        run: |
-          bash tests/test_dry_run.sh 2>&1
-          bash tests/test_exit_codes.sh 2>&1
-          bash tests/test_security.sh 2>&1
-          bash tests/test_progress.sh 2>&1
-          bash tests/smoke.sh 2>&1
+        run: make test 2>&1

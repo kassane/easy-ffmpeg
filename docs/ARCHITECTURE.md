@@ -34,6 +34,7 @@
 
 * **One builder, one exec** — eliminates duplication (rule: avoid redundancies). Every `"-c:v"`, `"-b:a"`, `"copy"` flows through `Constants.carbon` → `ArgsBuilder` method. No `cli/*.carbon` touches raw literals.
 * **Exec via C++ interop, not libav*** — Carbon 0.1 nightly has no safe `libav*` import (`avcodec.h` pulls `<atomic>`, templates). `fork()+execvp()` is proven (`import Cpp library "<cstdio>"` works per `toolchain/docs`). Keeps build to one `carbon build` line, no `pkg-config` at compile time.
+* **Inline C++** (`inline Cpp #'''...'''#`) for small self-contained helpers; `ffi_helper.hpp` for shared code needing STL containers.
 * **Dry-run first** — `ArgsBuilder.ToSystemCmd()` testable without ffmpeg installed.
 
 ## File Responsibilities
@@ -42,8 +43,8 @@
 |------|------|------------------|
 | `Constants.carbon` | every magic string/number: flags, codecs, presets, exit codes, defaults | logic |
 | `ArgsBuilder.carbon` | module-level functions (`Clear`, `AddFlagValue`, `AddMany`, `StartFfmpeg`, `ToSystemCmd`) backed by C++ static buffer | exec or validation |
-| `Process.carbon` | `fn Exec(String) -> i32` single call to `process::run_str` (fork+execvp) | builder logic |
-| `Validate.carbon` | `Exists`, `ParseTime`, `IsAllowedCodec` | builder logic |
+| `Process.carbon` | `Exec`, `ExecProgress`, `ExecAndReport`, `ExecSimple`, `RunCapture` | builder logic |
+| `Validate.carbon` | `Exists`, `ValidatePath`, `CheckInput` | builder logic |
 | `cli/Convert.carbon` etc | parse own flags via `Cpp.cli`, call `ArgsBuilder.AddFlagValue(Constants.X(), Y)` | raw `"-c:v"` literals |
 | `main.carbon` | dispatch `if (arg == Constants.CmdConvert)` | builder/exec duplication |
 
