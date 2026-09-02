@@ -75,6 +75,34 @@ export CARBON="$PWD"/carbon_toolchain-0.0.0-0.nightly.2026.09.01/bin/carbon
 
 ## Verified language features (empirically tested 2026-09-01)
 
+### Toolchain subcommands
+
+| Subcommand | Purpose | Key flags |
+|---|---|---|
+| `build` | Compile + link to executable | `--optimize=(none\|debug\|speed\|size)`, `--output=FILE`, `--target=TRIPLE`, `--no-debug-info`, `--no-verify-llvm-ir`, `--no-prelude-import`, `--no-use-temp-dir` |
+| `compile` | Compile only (no link) | `--phase=(lex\|parse\|check\|lower\|optimize\|codegen)`, `--asm-output`, `--force-obj-output`, `--dump-tokens`, `--dump-parse-tree`, `--dump-sem-ir`, `--dump-llvm-ir`, `--dump-asm`, `--dump-mem-usage`, `--dump-timings`, `--parse-dump-format=(pretty\|yaml-postorder\|yaml-preorder)`, `--stream-errors` |
+| `link` | Link object files | Pass objects + link args after `--` |
+| `format` | Format Carbon source | `--output=-` for stdout |
+| `config` | Print toolchain config | `--json` for machine-readable |
+| `clang` | Run bundled clang | Full Clang CLI; use `--` to separate |
+| `lld` | Run bundled LLD | `--platform=(elf\|macho\|wasm)` |
+| `llvm` | LLVM tools (ar, nm, objdump, readobj, strip, etc.) | Subcommands: `llvm ar`, `llvm nm`, `llvm objdump`, `llvm readobj`, `llvm strip`, etc. |
+| `build-runtimes` | Prebuild Carbon runtimes | `--prebuilt-runtimes=PATH` |
+| `language-server` | LSP server | For editor integration |
+
+Global options: `-v`/`--verbose`, `--runtimes-cache=PATH`, `--prebuilt-runtimes=PATH`, `--no-build-runtimes`, `--fuzzing`, `--include-diagnostic-kind`, `--no-threads`.
+
+### Compile phases (ordered)
+
+1. **lex** — tokenize source. Use `--dump-tokens` to see output (YAML with token kinds, positions, spellings).
+2. **parse** — build parse tree. Use `--dump-parse-tree` (default: pretty box-drawing; `--parse-dump-format=yaml-preorder` for structured YAML).
+3. **check** — semantic analysis. Use `--dump-sem-ir` for SemIR dump, `--dump-cpp-ast` for C++ AST.
+4. **lower** — lower to LLVM IR. Use `--dump-llvm-ir` to inspect.
+5. **optimize** — LLVM optimization passes.
+6. **codegen** — emit machine code. Use `--dump-asm` for assembly text, `--asm-output` to write `.s` instead of `.o`.
+
+Phases run in sequence; selecting a later phase runs all earlier ones.
+
 ### OOP: class/impl/self
 
 Works. The self parameter uses bare `self` with no type annotation (matching prelude pattern).
@@ -96,7 +124,44 @@ class Point {
 }
 ```
 
+**What works in classes:**
+- `var` fields (mutable), `private var` fields
+- Multiple constructors (`fn Make(...)` overloads)
+- Nested classes (`class Inner` inside `class Outer`)
+- Static methods (methods without `self` parameter)
+- `ref self` for mutation (`fn Inc(ref self) { self.x += 1; }`)
+- Tuple return values (`fn Foo() -> (i32, i32)`, access via `.0`/`.1`)
+- `impl Class as Interface` for interface implementation
+- `impl forall [T: type] GenericClass(T) as ...` for generic impls
+- Generic classes: `class Box(T: type) { var value: T; }`
+
+**What doesn't work:**
+- `extends` keyword — no class inheritance; use composition
+- `abstract class` / abstract methods — use interfaces instead
+- Tuple destructuring: `let (a, b) = Foo()` fails — use `.0`/`.1`
+- Default parameter values: `fn Make(x: i32 = 0)` — "semantics TODO: pattern default values"
+- Operator overloading: `impl Foo as AddWith(Foo)` — `AddWith` not found via name
+
 Entry files (no `package` declaration) need `ArgsBuilder.carbon` linked and `-std=c++23 -Isrc/core` passed to compile. Files with `package Foo library "foo"` need the same flags but also require the entry file to have no package.
+
+### Generics and interfaces
+
+**What works:**
+- Generic classes: `class Box(T: type) { var value: T; }`
+- Generic functions: `fn Max[T: Core.Copy](a: T, b: T) -> T`
+- Interface definitions with associated types: `interface Foo { let T: type; fn Bar(self: Self) -> T; }`
+- Interface with Self return: `interface Serializable { fn Serialize(self: Self) -> Self; }`
+- Interface as function parameter: `fn Render(d: Drawable)` (warning only for unused)
+- Type aliases: `alias MyInt = i32;`
+- Constraint composition: `class Box(T: Core.Copy)` (need `import Core library "prelude/copy";`)
+- `impl forall` on generic types: `impl forall [T: type] Box(T) as ...`
+
+**What doesn't work:**
+- Interface method dispatch: `x.Method()` on impl-ed type — "member name not found"
+- `where` clauses on `impl` — "handle invalid parse trees"
+- Choice with payload: `choice Result { Ok(i32), Err(String) }` — "choice alternatives with parameters are not yet supported"
+- Choice with generic param: `choice Opt(T: type) { Some(T), None }` — same error
+- Self parameter in square brackets: `[self: Self]` broken — use `(self: Self)` in regular param list
 
 ### Range / InclusiveRange
 
@@ -106,14 +171,31 @@ Defined in `prelude/range.carbon` but `Range` is **not found** at call site on t
 
 All three are **semantics TODO** on 0.9.01. `match (x) { case 1: ... }` errors with `HandleMatchIntroducer`. `choice` with parameters errors with `choice alternatives with parameters are not yet supported`. `switch` on choice types also fails. Dispatch with `if` chains.
 
-### C++ STL interop
+### Control flow
 
-`std::string` works as a Carbon type (`Cpp.std.string`). `std::vector<T>` template instantiation compiles but the bundled libcxx has header ordering bugs (`synth_three_way.h` not included before use) that cause hard errors when `<vector>` is included. Our `ffi_helper.hpp` avoids this by not including `<vector>` from Carbon. Keep C++ container usage inside `ffi_helper.hpp` where `<algorithm>` is included before headers that need it.
+**Works:** `if`/`else if`/`else`, `while` loops, `break`, `continue`, `for` loops with `Iterate` interface (arrays implement it), `as` type casts (`x as i64`), compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`), bitwise operators (`&`, `|`, `^`, `<<`, `>>`), pointer address-of (`&x`), `Core.String` for string literals.
 
-### interface / impl generics (0.9.01)
+**Doesn't work:** `for` with `Range()` (name not found), ternary `?:`, bitwise NOT `~`, pointer arithmetic (`p + 1`), varargs (`...`), string interpolation, multi-line strings, array slicing, `sizeof`, tuple destructuring.
 
-Interface definitions and `impl X as Y` declarations **parse** without error. Method dispatch is broken: calling `x.Method()` on an `impl`-ed type gives "member name not found". Generic functions with interface constraints also fail at call sites. Parsing works, runtime dispatch does not. Not usable yet.
+### C++ STL interop (tested via ffi_helper.hpp)
 
+**Works (all C++23):**
+- `std::optional<T>` — `.has_value()`, `.value()`, `.Get()` from Carbon
+- `std::variant<Ts...>` — `std::get<T>()`, `.index()`
+- Structured bindings — `auto [x, y] = ...`, struct field access from Carbon
+- `if constexpr` — template instantiation
+- `std::array<T, N>` — range-for iteration
+- `std::string_view` — Carbon string literal passes as `string_view`
+- Range-based for — works in C++ helpers
+- `std::span<T>` — C++20, compiles
+- `std::format` with custom types — struct formatting works
+- Fold expressions — `(args + ... + 0)`
+- `auto` return type deduction — `-> decltype(auto)`
+- Concepts — `concept Numeric` constrains templates
+
+**Doesn't work from Carbon:**
+- Lambda / `std::function` — no Carbon function pointer interop
+- `std::vector<T>` from Carbon — libcxx header ordering bug (works inside `ffi_helper.hpp` only)
 
 ### CppRange
 
