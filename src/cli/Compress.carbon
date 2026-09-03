@@ -92,11 +92,10 @@ fn Run() -> i32 {
     let ch: i32 = Cpp.probe_channels(ffprobe, ctx.input);
     if (ch > 2) { ArgsBuilder.AddFlagValue(Constants.FlagAc(), Constants.StereoChannels()); }
   }
+  // Audio codec: override preset default (presets already set -c:a)
   let acodec: Cpp.std.string = Cpp.cli.get_flag_value("--audio-codec");
   if (Cpp.str_ne(acodec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), acodec);
-  } else {
-    ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.CodecAac());
   }
   // Audio bitrate: override preset default
   let abr: Cpp.std.string = Cpp.cli.get_flag_value("--bitrate");
@@ -107,10 +106,8 @@ fn Run() -> i32 {
   if (Cpp.str_ne(vbr, "")) {
     ArgsBuilder.AddFlagValue(Cpp.strh.make(Constants.FlagVideoBitrate()), vbr);
   }
-  if (Cpp.cli.has_flag("--web") == 1) {
-    ArgsBuilder.AddFlagValue(Constants.FlagMovflags(), Constants.FaststartValue());
-  }
-  if (Cpp.cli.has_flag("--mobile") == 1) {
+  // Mobile scale: preset already includes this, only add for custom codec
+  if (Cpp.cli.has_flag("--mobile") == 1 and Cpp.str_ne(vcodec, "")) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Constants.ScaleFilterHd());
   }
   if (Cpp.str_eq(ctx.output, "")) {

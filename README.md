@@ -6,7 +6,7 @@
 
 ```sh
 $ easy-ffmpeg compress video.mp4 output.mp4 --web
-ffmpeg -y -i video.mp4 -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k -movflags +faststart output.mp4
+ffmpeg -i video.mp4 -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k -movflags +faststart output.mp4
 exit code=0
 
 $ easy-ffmpeg convert old.mkv new.mp4          # smart remux (h264+aac → -c copy)
