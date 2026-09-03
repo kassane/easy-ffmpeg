@@ -7,11 +7,11 @@
 | Input | Validation |
 |-------|-----------|
 | Input path (`-i X`) | `CheckInput(X)` calls `ValidatePath()` — rejects `..`, `'`, `\n`, `\r`, `\0`, non-regular files |
-| Output path | User-controlled (expected for CLI tool). Only input paths validated via `ValidatePath()`.
+| Output path (`-o X`) | `CheckOutput(X)` calls `ValidatePath()` — same traversal rules as input. Also checks existing file with `--force` gate.
 | Time (`--start 00:01:00`, `--duration 30s`) | Parsed via `Cpp.process.parse_time_ms` in Validate; numeric-only grammar |
 | Codec (`--codec h264`) | `Validate.IsAllowedCodec` matches allow-list, never free-text |
 | Preset / bitrate / crf | Presets defined in `Constants.carbon` (PresetWeb/Mobile/Streaming/Compress) |
-| Text watermark (`--text`) | `escape_drawtext()` escapes `: ' \ ; % [ ]` for ffmpeg drawtext filter |
+| Text watermark (`--text`) | `escape_drawtext()` escapes `: ' \ ; % [ ] \n \r` for ffmpeg drawtext filter |
 | SRT path (`--file`) | `ValidatePath()` + `build_subtitle_filter()` escapes `\ ' : [ ]` |
 | Concat file paths | `build_concat_list_2()` escapes `'` in filenames |
 | Speed factor (`--factor`) | `validate_numeric()` blocks non-numeric input |
@@ -34,7 +34,7 @@ Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` al
 
 - Build argv as an `Array(String)` and **join with spaces only after validation**, never concatenate raw input.
 - `validate_path()` rejects `'`, `\n`, `\r`, `\0` to block injection in concat lists and ffmpeg filters.
-- `escape_drawtext()` escapes `: ' \ ; % [ ]` to block filter injection.
+- `escape_drawtext()` escapes `: ' \ ; % [ ] \n \r` to block filter injection.
 - `build_subtitle_filter()` escapes `\ ' : [ ]` in SRT paths.
 - `build_concat_list_2()` escapes `'` in filenames (standard single-quote escaping).
 - `argv_build_cmd()` escapes `"` inside double-quoted arguments.
@@ -46,7 +46,7 @@ Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` al
 |----------|-----------|---------|
 | `process::run_str()` | `fork()+execvp()` (POSIX), `_spawnvp()` (Windows) | `Process.Exec()` — all CLI commands |
 | `run_progress()` | `fork()+execvp()` with pipe (POSIX), `_popen()` (Windows) | `Process.ExecProgress()` — commands with progress bar |
-| `run_capture()` | `fork()+execvp()` with pipe (POSIX), `_popen()` (Windows) | `probe_codecs()`, `probe_duration_ms()`, `probe_resolution()` |
+| `run_capture()` | `fork()+execvp()` with pipe (POSIX), `_popen()` (Windows) | `probe_duration_ms()`, `probe_stream_codec()` |
 | `run_shell()` | `std::system()` — **shell, glob expansion** | `build.carbon` only (hardcoded strings, no user input) |
 
 `run_shell()` is intentionally shell-based for build tool glob expansion. All callers use hardcoded command strings. No user input reaches `run_shell()`.
@@ -59,5 +59,5 @@ Rule: **any user string that reaches `ToSystemCmd()` must pass a `Validate.*` al
 - [ ] `grep -n 'run_str(' src` → only in `ffi_helper.hpp` and `Process.carbon`
 - [ ] no secrets/env-dump in help output or `--debug`
 - [ ] `validate_path()` rejects injection chars (`'`, `\n`, `\r`, `\0`)
-- [ ] `escape_drawtext()` covers `: ' \ ; % [ ]`
+- [ ] `escape_drawtext()` covers `: ' \ ; % [ ] \n \r`
 - [ ] concat list builders escape `'` in filenames

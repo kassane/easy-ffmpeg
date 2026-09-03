@@ -5,9 +5,8 @@ package Resize library "cli/resize";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
+import Ctx library "core/command_context";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
-import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -28,6 +27,10 @@ fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Manual:\n"));
   Core.PrintStr("  --width <px>     Target width\n");
   Core.PrintStr("  --height <px>    Target height\n");
+  Core.PrintStr("\n");
+  Core.PrintStr(Cpp.color.bold("Aspect ratio:\n"));
+  Core.PrintStr("  --aspect <name>  wide, 4:3, 8:7, square, tiktok\n");
+  Core.PrintStr("  --crop           Crop instead of pad (with --aspect)\n");
   Core.PrintStr("  --dry-run        Print ffmpeg command without executing\n");
   Core.PrintStr("\n");
   Core.PrintStr(Cpp.color.bold("Examples:\n"));
@@ -36,28 +39,22 @@ fn ShowHelp() {
 }
 
 // Build the common ffmpeg command for a scale filter and execute/dry-run.
-fn RunWithFilter(filter: Cpp.std.string, input: Cpp.std.string, output: Cpp.std.string) -> i32 {
+fn RunWithFilter(filter: Cpp.std.string, ctx: Ctx.CommandContext) -> i32 {
   ArgsBuilder.StartFfmpeg();
-  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), ctx.input);
   ArgsBuilder.AddFlagValue(Constants.FlagFilter(), filter);
-  ArgsBuilder.Add(output);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  return Process.ExecAndReport(cmd, input);
+  ArgsBuilder.Add(ctx.output);
+  return ctx.Exec();
 }
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
-  }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
-  let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (Cpp.str_eq(output, "")) {
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInputOutput();
+  if (rc != 0) { return rc; }
+  let rc2: i32 = ctx.CheckOutput();
+  if (rc2 != 0) { return rc2; }
+  if (Cpp.str_eq(ctx.output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -66,11 +63,11 @@ fn Run() -> i32 {
   let w: Cpp.std.string = Cpp.cli.get_flag_value("--width");
   let h: Cpp.std.string = Cpp.cli.get_flag_value("--height");
   if (Cpp.str_eq(scale, "tiktok")) {
-    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), ""), input, output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleTiktok(), ""), ctx);
   } else if (Cpp.str_eq(scale, "instagram")) {
-    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), ""), input, output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleInstagram(), ""), ctx);
   } else if (Cpp.str_eq(scale, "youtube")) {
-    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), ""), input, output);
+    return RunWithFilter(Cpp.strh.concat3("scale=", Constants.ScaleYoutube(), ""), ctx);
   } else if (Cpp.str_ne(scale, "")) {
     let h_str: Cpp.std.string = Cpp.scale_height(scale);
     if (Cpp.str_eq(h_str, "0")) {
@@ -78,16 +75,28 @@ fn Run() -> i32 {
       Core.PrintStr("\n");
       return Constants.ExitFailure();
     }
-    return RunWithFilter(Cpp.strh.concat3("scale=-2:", h_str, ""), input, output);
+    return RunWithFilter(Cpp.strh.concat3("scale=-2:", h_str, ""), ctx);
   } else if (Cpp.str_ne(w, "")) {
     if (Cpp.str_eq(h, "")) {
       Core.PrintStr(Cpp.color.red("error: --height required with --width"));
       Core.PrintStr("\n");
       return Constants.ExitFailure();
     }
-    return RunWithFilter(Cpp.strh.concat3(Cpp.strh.concat3("scale=", w, ":"), h, ""), input, output);
+    return RunWithFilter(Cpp.strh.concat3(Cpp.strh.concat3("scale=", w, ":"), h, ""), ctx);
   }
-  Core.PrintStr(Cpp.color.red("error: --scale or --width + --height required"));
+  // Aspect ratio mode (--aspect without --scale/--width)
+  let aspect: Cpp.std.string = Cpp.cli.get_flag_value("--aspect");
+  if (Cpp.str_ne(aspect, "")) {
+    let crop: i32 = Cpp.cli.has_flag("--crop");
+    let filter: Cpp.std.string = Cpp.build_aspect_filter(aspect, crop);
+    if (Cpp.str_eq(filter, "")) {
+      Core.PrintStr(Cpp.color.red("error: unknown aspect ratio. Valid: wide, 4:3, 8:7, square, tiktok"));
+      Core.PrintStr("\n");
+      return Constants.ExitFailure();
+    }
+    return RunWithFilter(filter, ctx);
+  }
+  Core.PrintStr(Cpp.color.red("error: --scale, --width + --height, or --aspect required"));
   Core.PrintStr("\n");
   return Constants.ExitFailure();
 }

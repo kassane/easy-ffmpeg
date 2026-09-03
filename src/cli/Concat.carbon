@@ -6,8 +6,8 @@ import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
 import Validate library "core/validate";
+import Process library "core/process";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));

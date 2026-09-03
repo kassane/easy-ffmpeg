@@ -424,6 +424,9 @@ inline std::vector<std::string> read_carbon_src() {
       size_t c2 = line.find(':', c1 + 1);
       if (c2 == std::string::npos) continue;
       std::string content = line.substr(c2 + 1);
+      // Skip class methods (indented lines) — only count top-level functions
+      if (!content.empty() && (content[0] == ' ' || content[0] == '\t'))
+        continue;
       if (content.find(pat) != std::string::npos) n++;
     }
     return n;
@@ -500,7 +503,7 @@ inline std::string escape_drawtext(std::string_view text) {
   result.reserve(text.size() * 2);
   for (char c : text) {
     if (c == ':' || c == '\'' || c == '\\' || c == ';' || c == '%' ||
-        c == '[' || c == ']')
+        c == '[' || c == ']' || c == '\n' || c == '\r')
       result += '\\';
     result += c;
   }
@@ -673,6 +676,45 @@ inline std::string escape_drawtext(std::string_view text) {
   }
 }
 
+// === Aspect ratio filter builder ===
+// Returns ffmpeg -vf filter for aspect ratio.
+// Preset: "wide" (16:9), "4:3", "8:7", "square" (1:1), "tiktok" (9:16).
+// Crop: 1=crop to aspect, 0=pad with black bars.
+[[nodiscard]] inline std::string build_aspect_filter(std::string_view preset,
+                                                     int crop) {
+  int num = 0, den = 0;
+  if (preset == "wide") {
+    num = 16;
+    den = 9;
+  } else if (preset == "4:3") {
+    num = 4;
+    den = 3;
+  } else if (preset == "8:7") {
+    num = 8;
+    den = 7;
+  } else if (preset == "square") {
+    num = 1;
+    den = 1;
+  } else if (preset == "tiktok") {
+    num = 9;
+    den = 16;
+  } else {
+    return "";
+  }
+
+  std::string result;
+  if (crop) {
+    result = "crop=min(iw\\,ih*" + std::to_string(num) + "/" +
+             std::to_string(den) + "):min(ih\\,iw*" + std::to_string(den) +
+             "/" + std::to_string(num) + ")";
+  } else {
+    result = "pad=max(iw\\,ih*" + std::to_string(num) + "/" +
+             std::to_string(den) + "):max(ih\\,iw*" + std::to_string(den) +
+             "/" + std::to_string(num) + "):(ow-iw)/2:(oh-ih)/2:black";
+  }
+  return result;
+}
+
 // === Compress preset builder ===
 // Returns space-separated ffmpeg args for a compress preset.
 // Preset: "web", "mobile", "streaming", "compress", "av1", "jxl".
@@ -741,6 +783,10 @@ inline std::string escape_drawtext(std::string_view text) {
       add("-preset");
       add("medium");
     }
+    add("-g");
+    add("48");
+    add("-keyint_min");
+    add("48");
     add("-c:a");
     add("aac");
     add("-b:a");

@@ -5,9 +5,8 @@ package Probe library "cli/probe";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
+import Ctx library "core/command_context";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
-import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -22,14 +21,9 @@ fn ShowHelp() {
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
-  }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInput(1);
+  if (rc != 0) { return rc; }
   ArgsBuilder.Clear();
   ArgsBuilder.Add(Constants.FfprobeBin());
   ArgsBuilder.AddFlagValue(Constants.FlagVerbosity(), Constants.QuietValue());
@@ -37,8 +31,6 @@ fn Run() -> i32 {
     ArgsBuilder.AddFlagValue(Constants.FlagPrintFormat(), Constants.JsonValue());
   }
   ArgsBuilder.Add(Constants.FlagShowStreams());
-  ArgsBuilder.Add(input);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  return Process.ExecSimple(cmd);
+  ArgsBuilder.Add(ctx.input);
+  return ctx.ExecSimple();
 }

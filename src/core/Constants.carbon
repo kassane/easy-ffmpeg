@@ -6,7 +6,7 @@
 package Constants library "core/constants";
 
 // ── Version ────────────────────────────────────────────────────────────────
-fn Version() -> Core.String { return "0.2.5"; }
+fn Version() -> Core.String { return "0.2.6"; }
 
 // ── Exit codes ─────────────────────────────────────────────────────────────
 fn ExitSuccess() -> i32 { return 0; }
@@ -52,8 +52,13 @@ fn FlagAudioFilter() -> Core.String { return "-af"; }
 fn FlagVframes() -> Core.String { return "-vframes"; }
 fn FlagSafe() -> Core.String { return "-safe"; }
 fn FlagAnnotate() -> Core.String { return "-an"; }
+fn FlagAc() -> Core.String { return "-ac"; }
+fn StereoChannels() -> Core.String { return "2"; }
 fn FlagVn() -> Core.String { return "-vn"; }
 fn FlagOverwrite() -> Core.String { return "-y"; }
+fn FlagForce() -> Core.String { return "--force"; }
+fn FlagKeyframe() -> Core.String { return "-g"; }
+fn FlagKeyintMin() -> Core.String { return "-keyint_min"; }
 fn FlagShortest() -> Core.String { return "-shortest"; }
 
 // ── Encoding quality flags ─────────────────────────────────────────────────
@@ -91,6 +96,12 @@ fn MaxArgs() -> i32 { return 64; }
 // ── Encoding defaults ──────────────────────────────────────────────────────
 fn DefaultCrf() -> Core.String { return "23"; }
 fn DefaultPreset() -> Core.String { return "fast"; }
+fn PresetCompress() -> Core.String { return "compress"; }
+fn PresetWeb() -> Core.String { return "web"; }
+fn PresetMobile() -> Core.String { return "mobile"; }
+fn PresetStreaming() -> Core.String { return "streaming"; }
+fn PresetAv1() -> Core.String { return "av1"; }
+fn PresetJxl() -> Core.String { return "jxl"; }
 fn DefaultVideoEncoder() -> Core.String { return "libx264"; }
 fn DefaultAudioBitrate() -> Core.String { return "128k"; }
 fn DefaultGifFps() -> i32 { return 15; }
@@ -109,6 +120,15 @@ fn ScaleFilterHd() -> Core.String { return "scale=-2:720"; }
 fn ScaleTiktok() -> Core.String { return "1080:1920"; }
 fn ScaleInstagram() -> Core.String { return "1080:1080"; }
 fn ScaleYoutube() -> Core.String { return "1920:1080"; }
+
+// ── Aspect ratios ───────────────────────────────────────────────────────
+fn FlagAspect() -> Core.String { return "--aspect"; }
+fn FlagCrop() -> Core.String { return "--crop"; }
+fn AspectWide() -> Core.String { return "wide"; }
+fn Aspect43() -> Core.String { return "4:3"; }
+fn Aspect87() -> Core.String { return "8:7"; }
+fn AspectSquare() -> Core.String { return "square"; }
+fn AspectTiktok() -> Core.String { return "tiktok"; }
 
 // ── Speed presets ──────────────────────────────────────────────────────────
 fn SpeedHalf() -> Core.String { return "0.5"; }

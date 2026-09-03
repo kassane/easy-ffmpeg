@@ -6,8 +6,7 @@ import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
-import Validate library "core/validate";
+import Ctx library "core/command_context";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -25,16 +24,12 @@ fn ShowHelp() {
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
-  }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
-  let output: Cpp.std.string = Cpp.cli.get_positional(1);
-  if (Cpp.str_eq(output, "")) {
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInputOutput();
+  if (rc != 0) { return rc; }
+  let rc2: i32 = ctx.CheckOutput();
+  if (rc2 != 0) { return rc2; }
+  if (Cpp.str_eq(ctx.output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -43,7 +38,7 @@ fn Run() -> i32 {
   let every: Cpp.std.string = Cpp.cli.get_flag_value("--every");
   let webp: i32 = Cpp.cli.has_flag("--webp");
   ArgsBuilder.StartFfmpeg();
-  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), ctx.input);
   if (Cpp.str_ne(every, "")) {
     if (Cpp.validate_numeric(every) == 0) {
       Core.PrintStr(Cpp.color.red("error: --every must be a number"));
@@ -69,8 +64,6 @@ fn Run() -> i32 {
   if (webp == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Cpp.strh.make("libwebp_anim"));
   }
-  ArgsBuilder.Add(output);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  return Process.ExecSimple(cmd);
+  ArgsBuilder.Add(ctx.output);
+  return ctx.ExecSimple();
 }

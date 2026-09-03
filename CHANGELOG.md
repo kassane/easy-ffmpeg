@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6] - 2026-09-02
+
+### Changed
+
+- **OOP refactoring**: new `CommandContext` class with `ref self` for mutation, `DryRun` helper, tuple returns — eliminates boilerplate across 17 CLI files, removed unused `Validate` imports from 13 files.
+
+
 ## [0.2.5] - 2026-09-01
 
 ### Added

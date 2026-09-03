@@ -26,57 +26,62 @@ check_contains() {
   fi
 }
 
-echo "=== path traversal ==="
-check_exit "traversal ../.. blocked" 4 $BIN convert "../../etc/passwd" /tmp/o.mp4 --dry-run
-check_exit "absolute path dry-run ok" 0 $BIN convert "/etc/passwd" /tmp/o.mp4 --dry-run
-check_exit "traversal dotdot blocked" 4 $BIN convert "foo/../../etc/shadow" /tmp/o.mp4 --dry-run
-check_exit "traversal in compress" 4 $BIN compress "../../etc/passwd" /tmp/o.mp4 --dry-run
-check_exit "traversal in trim" 4 $BIN trim "../../etc/passwd" /tmp/o.mp4 --start 0 --duration 1 --dry-run
+echo "=== input path traversal ==="
+check_exit "traversal ../.. blocked" 4 $BIN convert "../../etc/passwd" /tmp/sec_out_$$.mp4 --dry-run
+check_exit "absolute path dry-run ok" 0 $BIN convert "/etc/passwd" /tmp/sec_out_$$.mp4 --dry-run
+check_exit "traversal dotdot blocked" 4 $BIN convert "foo/../../etc/shadow" /tmp/sec_out_$$.mp4 --dry-run
+check_exit "traversal in compress" 4 $BIN compress "../../etc/passwd" /tmp/sec_out_$$.mp4 --dry-run
+check_exit "traversal in trim" 4 $BIN trim "../../etc/passwd" /tmp/sec_out_$$.mp4 --start 0 --duration 1 --dry-run
 check_exit "traversal in probe" 4 $BIN probe "../../etc/passwd" --dry-run
 
+echo "=== output path traversal ==="
+check_exit "output traversal blocked" 4 $BIN convert $FIX /tmp/../../etc/evil.mp4 --dry-run
+check_exit "output dotdot blocked" 4 $BIN convert $FIX "foo/../../etc/evil.mp4" --dry-run
+check_exit "output traversal compress" 4 $BIN compress $FIX /tmp/../../etc/evil.mp4 --dry-run
+
 echo "=== injection characters ==="
-check_exit "quote in path blocked" 4 $BIN convert "foo'bar.mp4" /tmp/o.mp4 --dry-run
+check_exit "quote in path blocked" 4 $BIN convert "foo'bar.mp4" /tmp/sec_out_$$.mp4 --dry-run
 check_exit "newline in path blocked" 4 $BIN convert "foo
-bar.mp4" /tmp/o.mp4 --dry-run
+bar.mp4" /tmp/sec_out_$$.mp4 --dry-run
 
 echo "=== device/special files ==="
-check_exit "device /dev/null blocked" 3 $BIN convert /dev/null /tmp/o.mp4 --dry-run
-check_exit "device /dev/zero blocked" 3 $BIN convert /dev/zero /tmp/o.mp4 --dry-run
-check_exit "directory as input blocked" 3 $BIN convert /tmp /tmp/o.mp4 --dry-run
+check_exit "device /dev/null blocked" 3 $BIN convert /dev/null /tmp/sec_out_$$.mp4 --dry-run
+check_exit "device /dev/zero blocked" 3 $BIN convert /dev/zero /tmp/sec_out_$$.mp4 --dry-run
+check_exit "directory as input blocked" 3 $BIN convert /tmp /tmp/sec_out_$$.mp4 --dry-run
 
 echo "=== missing arguments ==="
 check_exit "no args exit 2" 2 $BIN
 check_exit "unknown command exit 2" 2 $BIN foobar
-check_exit "convert missing input" 3 $BIN convert nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "compress missing input" 3 $BIN compress nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "trim missing input" 3 $BIN trim nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "resize missing input" 3 $BIN resize nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "audio-extract missing input" 3 $BIN audio-extract nonexistent.mp4 /tmp/o.mp3 --dry-run
+check_exit "convert missing input" 3 $BIN convert nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "compress missing input" 3 $BIN compress nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "trim missing input" 3 $BIN trim nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "resize missing input" 3 $BIN resize nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "audio-extract missing input" 3 $BIN audio-extract nonexistent.mp4 /tmp/sec_out_$$.mp3 --dry-run
 check_exit "probe missing input" 3 $BIN probe nonexistent.mp4 --dry-run
-check_exit "gif missing input" 3 $BIN gif nonexistent.mp4 /tmp/o.gif --dry-run
-check_exit "thumbnail missing input" 3 $BIN thumbnail nonexistent.mp4 /tmp/o.jpg --dry-run
-check_exit "speed missing input" 3 $BIN speed nonexistent.mp4 /tmp/o.mp4 --factor 2.0 --dry-run
-check_exit "rotate missing input" 3 $BIN rotate nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "watermark missing input" 3 $BIN watermark nonexistent.mp4 /tmp/o.mp4 --image logo.png --dry-run
-check_exit "subtitle missing input" 3 $BIN subtitle nonexistent.mp4 /tmp/o.mp4 --file sub.srt --dry-run
-check_exit "metadata missing input" 3 $BIN metadata nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "normalize missing input" 3 $BIN normalize nonexistent.mp4 /tmp/o.mp4 --dry-run
-check_exit "replace-audio missing input" 3 $BIN replace-audio nonexistent.mp4 /tmp/o.mp4 --audio music.mp3 --dry-run
+check_exit "gif missing input" 3 $BIN gif nonexistent.mp4 /tmp/sec_out_$$.gif --dry-run
+check_exit "thumbnail missing input" 3 $BIN thumbnail nonexistent.mp4 /tmp/sec_out_$$.jpg --dry-run
+check_exit "speed missing input" 3 $BIN speed nonexistent.mp4 /tmp/sec_out_$$.mp4 --factor 2.0 --dry-run
+check_exit "rotate missing input" 3 $BIN rotate nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "watermark missing input" 3 $BIN watermark nonexistent.mp4 /tmp/sec_out_$$.mp4 --image logo.png --dry-run
+check_exit "subtitle missing input" 3 $BIN subtitle nonexistent.mp4 /tmp/sec_out_$$.mp4 --file sub.srt --dry-run
+check_exit "metadata missing input" 3 $BIN metadata nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "normalize missing input" 3 $BIN normalize nonexistent.mp4 /tmp/sec_out_$$.mp4 --dry-run
+check_exit "replace-audio missing input" 3 $BIN replace-audio nonexistent.mp4 /tmp/sec_out_$$.mp4 --audio music.mp3 --dry-run
 
 echo "=== valid inputs succeed ==="
-check_exit "convert valid" 0 $BIN convert $FIX /tmp/o.mp4 --dry-run
-check_exit "compress valid" 0 $BIN compress $FIX /tmp/o.mp4 --web --dry-run
-check_exit "trim valid" 0 $BIN trim $FIX /tmp/o.mp4 --start 0 --duration 1 --dry-run
-check_exit "resize valid" 0 $BIN resize $FIX /tmp/o.mp4 --scale hd --dry-run
-check_exit "audio-extract valid" 0 $BIN audio-extract $FIX /tmp/o.mp3 --dry-run
+check_exit "convert valid" 0 $BIN convert $FIX /tmp/sec_out_$$.mp4 --force --dry-run
+check_exit "compress valid" 0 $BIN compress $FIX /tmp/sec_out_$$.mp4 --web --force --dry-run
+check_exit "trim valid" 0 $BIN trim $FIX /tmp/sec_out_$$.mp4 --start 0 --duration 1 --force --dry-run
+check_exit "resize valid" 0 $BIN resize $FIX /tmp/sec_out_$$.mp4 --scale hd --force --dry-run
+check_exit "audio-extract valid" 0 $BIN audio-extract $FIX /tmp/sec_out_$$.mp3 --force --dry-run
 check_exit "probe valid" 0 $BIN probe $FIX --json --dry-run
-check_exit "gif valid" 0 $BIN gif $FIX /tmp/o.gif --dry-run
-check_exit "thumbnail valid" 0 $BIN thumbnail $FIX /tmp/o.jpg --dry-run
-check_exit "speed valid" 0 $BIN speed $FIX /tmp/o.mp4 --factor 2.0 --dry-run
-check_exit "rotate valid" 0 $BIN rotate $FIX /tmp/o.mp4 --angle 90 --dry-run
-check_exit "metadata valid" 0 $BIN metadata $FIX /tmp/o.mp4 --strip --dry-run
-check_exit "normalize valid" 0 $BIN normalize $FIX /tmp/o.mp4 --dry-run
-check_exit "crop valid" 0 $BIN crop $FIX /tmp/o.mp4 --width 320 --height 240 --dry-run
+check_exit "gif valid" 0 $BIN gif $FIX /tmp/sec_out_$$.gif --force --dry-run
+check_exit "thumbnail valid" 0 $BIN thumbnail $FIX /tmp/sec_out_$$.jpg --force --dry-run
+check_exit "speed valid" 0 $BIN speed $FIX /tmp/sec_out_$$.mp4 --factor 2.0 --force --dry-run
+check_exit "rotate valid" 0 $BIN rotate $FIX /tmp/sec_out_$$.mp4 --angle 90 --force --dry-run
+check_exit "metadata valid" 0 $BIN metadata $FIX /tmp/sec_out_$$.mp4 --strip --force --dry-run
+check_exit "normalize valid" 0 $BIN normalize $FIX /tmp/sec_out_$$.mp4 --force --dry-run
+check_exit "crop valid" 0 $BIN crop $FIX /tmp/sec_out_$$.mp4 --width 320 --height 240 --force --dry-run
 
 echo "=== help flags ==="
 check_exit "--help" 0 $BIN --help
@@ -91,7 +96,7 @@ check_exit "audio-extract --help" 0 $BIN audio-extract --help
 check_exit "probe --help" 0 $BIN probe --help
 
 echo ""
-check_exit "crop missing input" 3 $BIN crop nonexistent.mp4 /tmp/o.mp4 --width 320 --height 240 --dry-run
+check_exit "crop missing input" 3 $BIN crop nonexistent.mp4 /tmp/sec_out_$$.mp4 --width 320 --height 240 --dry-run
 check_exit "colordetect missing input" 3 $BIN colordetect nonexistent.mp4 --dry-run
 check_exit "colordetect valid" 0 $BIN colordetect $FIX --dry-run
 

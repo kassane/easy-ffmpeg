@@ -5,9 +5,8 @@ package Compress library "cli/compress";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
+import Ctx library "core/command_context";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
-import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -36,17 +35,13 @@ fn ShowHelp() {
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
-  }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
-  let output: Cpp.std.string = Cpp.cli.get_positional(1);
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInputOutput();
+  if (rc != 0) { return rc; }
+  let rc2: i32 = ctx.CheckOutput();
+  if (rc2 != 0) { return rc2; }
   ArgsBuilder.StartFfmpeg();
-  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), ctx.input);
   // Codec selection: custom or preset
   let vcodec: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
   if (Cpp.str_ne(vcodec, "")) {
@@ -58,13 +53,13 @@ fn Run() -> i32 {
     if (Cpp.str_ne(pset, "")) { ArgsBuilder.AddFlagValue(Constants.FlagPreset(), pset); }
   } else {
     // Preset: build all args from C++ helper
-    let fmt: Cpp.std.string = Cpp.format_for_ext(output);
-    var pname: Cpp.std.string = Cpp.strh.make("compress");
-    if (Cpp.cli.has_flag("--web") == 1) { pname = Cpp.strh.make("web"); }
-    else if (Cpp.cli.has_flag("--mobile") == 1) { pname = Cpp.strh.make("mobile"); }
-    else if (Cpp.cli.has_flag("--streaming") == 1) { pname = Cpp.strh.make("streaming"); }
-    else if (Cpp.cli.has_flag("--av1") == 1) { pname = Cpp.strh.make("av1"); }
-    else if (Cpp.cli.has_flag("--jxl") == 1) { pname = Cpp.strh.make("jxl"); }
+    let fmt: Cpp.std.string = Cpp.format_for_ext(ctx.output);
+    var pname: Cpp.std.string = Cpp.strh.make(Constants.PresetCompress());
+    if (Cpp.cli.has_flag("--web") == 1) { pname = Cpp.strh.make(Constants.PresetWeb()); }
+    else if (Cpp.cli.has_flag("--mobile") == 1) { pname = Cpp.strh.make(Constants.PresetMobile()); }
+    else if (Cpp.cli.has_flag("--streaming") == 1) { pname = Cpp.strh.make(Constants.PresetStreaming()); }
+    else if (Cpp.cli.has_flag("--av1") == 1) { pname = Cpp.strh.make(Constants.PresetAv1()); }
+    else if (Cpp.cli.has_flag("--jxl") == 1) { pname = Cpp.strh.make(Constants.PresetJxl()); }
     let preset_args: Cpp.std.string = Cpp.build_compress_args(pname, fmt);
     // Tokenize and add each arg
     let toks: Cpp.std.string = preset_args;
@@ -85,17 +80,17 @@ fn Run() -> i32 {
   let enc: Cpp.std.string = Cpp.cli.get_flag_value("--codec");
   if (Cpp.str_ne(enc, "")) {
     let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
-    let pix: Cpp.std.string = Cpp.probe_pix_fmt(ffprobe, input);
-    let w: i32 = Cpp.probe_width(ffprobe, input);
-    let h: i32 = Cpp.probe_height(ffprobe, input);
+    let pix: Cpp.std.string = Cpp.probe_pix_fmt(ffprobe, ctx.input);
+    let w: i32 = Cpp.probe_width(ffprobe, ctx.input);
+    let h: i32 = Cpp.probe_height(ffprobe, ctx.input);
     let vf: Cpp.std.string = Cpp.normalize_video_filters(pix, w, h, enc);
     if (Cpp.str_ne(vf, "")) { ArgsBuilder.AddFlagValue(Constants.FlagFilter(), vf); }
   }
   // Audio downmix to stereo for web/mobile
   if (Cpp.cli.has_flag("--web") == 1 or Cpp.cli.has_flag("--mobile") == 1) {
     let ffprobe: Cpp.std.string = Cpp.strh.make(Constants.FfprobeBin());
-    let ch: i32 = Cpp.probe_channels(ffprobe, input);
-    if (ch > 2) { ArgsBuilder.AddFlagValue(Cpp.strh.make("-ac"), Cpp.strh.make("2")); }
+    let ch: i32 = Cpp.probe_channels(ffprobe, ctx.input);
+    if (ch > 2) { ArgsBuilder.AddFlagValue(Constants.FlagAc(), Constants.StereoChannels()); }
   }
   let acodec: Cpp.std.string = Cpp.cli.get_flag_value("--audio-codec");
   if (Cpp.str_ne(acodec, "")) {
@@ -118,7 +113,7 @@ fn Run() -> i32 {
   if (Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagFilter(), Constants.ScaleFilterHd());
   }
-  if (Cpp.str_eq(output, "")) {
+  if (Cpp.str_eq(ctx.output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
@@ -127,8 +122,6 @@ fn Run() -> i32 {
   if (Cpp.cli.has_flag("--no-subs") == 1 or Cpp.cli.has_flag("--web") == 1 or Cpp.cli.has_flag("--mobile") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagSn(), Cpp.strh.make(""));
   }
-  ArgsBuilder.Add(output);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  return Process.ExecAndReport(cmd, input);
+  ArgsBuilder.Add(ctx.output);
+  return ctx.Exec();
 }

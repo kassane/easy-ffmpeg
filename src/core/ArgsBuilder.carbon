@@ -46,14 +46,16 @@ fn AddMany5(a: Core.String, b: Core.String, c: Core.String, d: Core.String, e: C
   Cpp.argv_add_token(e);
 }
 
-// Common setup: Clear + FfmpegBin + FlagOverwrite. Used by every CLI command.
+// StartFfmpeg: Clear + FfmpegBin. Adds -y only if --force.
 fn StartFfmpeg() {
   Clear();
   Add(Constants.FfmpegBin());
-  Add(Constants.FlagOverwrite());
+  if (Cpp.cli.has_flag(Constants.FlagForce()) == 1) {
+    Add(Constants.FlagOverwrite());
+  }
 }
 
-// Common build command setup: Clear + carbon build src/main + core + cli + flags.
+// StartBuild: Clear + carbon build src/main + core + cli + flags.
 fn StartBuild(tc: Cpp.std.string) {
   Clear();
   Add(tc);

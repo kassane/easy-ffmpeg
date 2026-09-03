@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Matheus C. Franca
 package Colordetect library "cli/colordetect";
+import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
+import Ctx library "core/command_context";
 import Cpp library "ffi_helper.hpp";
-import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -16,18 +17,21 @@ fn ShowHelp() {
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
-    Core.PrintStr("\n");
-    return Constants.ExitFailure();
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInput(1);
+  if (rc != 0) { return rc; }
+  ArgsBuilder.StartFfmpeg();
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), ctx.input);
+  ArgsBuilder.Add(Cpp.strh.make("-vf"));
+  ArgsBuilder.Add(Cpp.strh.make("colordetect"));
+  ArgsBuilder.Add(Cpp.strh.make("-f"));
+  ArgsBuilder.Add(Cpp.strh.make("null"));
+  ArgsBuilder.Add(Cpp.strh.make("-"));
+  if (Cpp.cli.is_dry_run() == 1) {
+    Cpp.print_str(ArgsBuilder.ToSystemCmd());
+    return Constants.ExitSuccess();
   }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
-  let cmd: Cpp.std.string = Cpp.strh.concat3(
-    "ffmpeg -i ", input, " -vf colordetect -f null -");
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  let out: Cpp.std.string = Cpp.process.run_capture_stderr(cmd);
+  let out: Cpp.std.string = Cpp.process.run_capture_stderr(ArgsBuilder.ToSystemCmd());
   Core.PrintStr(Cpp.color.bold("Color properties:\n"));
   let rs: u64 = out.find("Color range:");
   if (rs != Constants.NotFoundIndex()) {

@@ -43,6 +43,7 @@
 |------|------|------------------|
 | `Constants.carbon` | every magic string/number: flags, codecs, presets, exit codes, defaults | logic |
 | `ArgsBuilder.carbon` | module-level functions (`Clear`, `AddFlagValue`, `AddMany`, `StartFfmpeg`, `ToSystemCmd`) backed by C++ static buffer | exec or validation |
+| `CommandContext.carbon` | OOP class: `DryRun`, `LoadInput`, `LoadInputOutput`, `CheckOutput`, `Exec`, `ExecSimple` — common CLI lifecycle | raw boilerplate in cli/ files |
 | `Process.carbon` | `Exec`, `ExecProgress`, `ExecAndReport`, `ExecSimple`, `RunCapture` | builder logic |
 | `Validate.carbon` | `Exists`, `ValidatePath`, `CheckInput` | builder logic |
 | `cli/Convert.carbon` etc | parse own flags via `Cpp.cli`, call `ArgsBuilder.AddFlagValue(Constants.X(), Y)` | raw `"-c:v"` literals |

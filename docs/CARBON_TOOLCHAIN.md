@@ -152,7 +152,7 @@ Entry files (no `package` declaration) need `ArgsBuilder.carbon` linked and `-st
 - Interface definitions with associated types: `interface Foo { let T: type; fn Bar(self: Self) -> T; }`
 - Interface with Self return: `interface Serializable { fn Serialize(self: Self) -> Self; }`
 - Interface as function parameter: `fn Render(d: Drawable)` (warning only for unused)
-- Type aliases: `alias MyInt = i32;`
+- Type aliases: `alias MyInt = i32;` — useful for complex generic types (`alias StrVec = Array(Core.String, 64);`) or domain clarity (`alias ExitCode = i32;`)
 - Constraint composition: `class Box(T: Core.Copy)` (need `import Core library "prelude/copy";`)
 - `impl forall` on generic types: `impl forall [T: type] Box(T) as ...`
 

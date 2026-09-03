@@ -5,9 +5,8 @@ package Trim library "cli/trim";
 import ArgsBuilder library "core/args";
 import Constants library "core/constants";
 import Core library "io";
+import Ctx library "core/command_context";
 import Cpp library "ffi_helper.hpp";
-import Process library "core/process";
-import Validate library "core/validate";
 
 fn ShowHelp() {
   Core.PrintStr(Cpp.color.bold("Usage:"));
@@ -26,36 +25,36 @@ fn ShowHelp() {
 
 fn Run() -> i32 {
   if (Cpp.cli.has_help() == 1) { ShowHelp(); return Constants.ExitSuccess(); }
-  if (Cpp.cli.positional_count() < 1) {
-    Core.PrintStr(Cpp.color.red("error: need input file"));
+  var ctx: Ctx.CommandContext = Ctx.CommandContext.Make();
+  let rc: i32 = ctx.LoadInputOutput();
+  if (rc != 0) { return rc; }
+  let rc2: i32 = ctx.CheckOutput();
+  if (rc2 != 0) { return rc2; }
+  // Validate trim options
+  let duration: Cpp.std.string = Cpp.cli.get_flag_value("--duration");
+  let end: Cpp.std.string = Cpp.cli.get_flag_value("--end");
+  if (Cpp.str_ne(duration, "") and Cpp.str_ne(end, "")) {
+    Core.PrintStr(Cpp.color.red("error: cannot use both --end and --duration. Pick one."));
     Core.PrintStr("\n");
-    return Constants.ExitFailure();
+    return Constants.ExitUsage();
   }
-  let input: Cpp.std.string = Cpp.cli.get_positional(0);
-  let check_rc: i32 = Validate.CheckInput(input);
-  if (check_rc != 0) { return check_rc; }
-  let output: Cpp.std.string = Cpp.cli.get_positional(1);
   ArgsBuilder.StartFfmpeg();
   let sseof: Cpp.std.string = Cpp.cli.get_flag_value("--sseof");
   if (Cpp.str_ne(sseof, "")) { ArgsBuilder.AddFlagValue(Constants.FlagSseof(), sseof); }
   let start: Cpp.std.string = Cpp.cli.get_flag_value("--start");
   if (Cpp.str_ne(start, "")) { ArgsBuilder.AddFlagValue(Constants.FlagStart(), start); }
-  let duration: Cpp.std.string = Cpp.cli.get_flag_value("--duration");
-  let end: Cpp.std.string = Cpp.cli.get_flag_value("--end");
   if (Cpp.str_ne(duration, "")) { ArgsBuilder.AddFlagValue(Constants.FlagDuration(), duration); }
   else if (Cpp.str_ne(end, "")) { ArgsBuilder.AddFlagValue(Constants.FlagTo(), end); }
-  ArgsBuilder.AddFlagValue(Constants.FlagInput(), input);
+  ArgsBuilder.AddFlagValue(Constants.FlagInput(), ctx.input);
   if (Cpp.cli.has_flag("--copy") == 1) {
     ArgsBuilder.AddFlagValue(Constants.FlagOutputCodec(), Constants.FlagCodecCopy());
     ArgsBuilder.AddFlagValue(Constants.FlagAudioCodec(), Constants.FlagCodecCopy());
   }
-  if (Cpp.str_eq(output, "")) {
+  if (Cpp.str_eq(ctx.output, "")) {
     Core.PrintStr(Cpp.color.red("error: output file required"));
     Core.PrintStr("\n");
     return Constants.ExitFailure();
   }
-  ArgsBuilder.Add(output);
-  let cmd: Cpp.std.string = ArgsBuilder.ToSystemCmd();
-  if (Cpp.cli.is_dry_run() == 1) { Cpp.print_str(cmd); return Constants.ExitSuccess(); }
-  return Process.ExecAndReport(cmd, input);
+  ArgsBuilder.Add(ctx.output);
+  return ctx.Exec();
 }

@@ -29,7 +29,7 @@ fn Run() {
   Cpp.cli.capture();
   if (Cpp.cli.has_help() == 1 or Cpp.cli.has_flag("--version") == 1) {
     if (Cpp.cli.has_help() == 1) { ShowHelp(); }
-    if (Cpp.cli.has_flag("--version") == 1) { Core.PrintStr("easy-ffmpeg build 0.2.5\n"); }
+    if (Cpp.cli.has_flag("--version") == 1) { Core.PrintStr("easy-ffmpeg build 0.2.6\n"); }
     Cpp.cli_exit(0);
     return;
   }

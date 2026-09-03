@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Matheus C. Franca
 
-// Single exec path. All process execution goes through Exec().
-// Bridges Carbon strings to C system() via std::string in ffi_helper.hpp.
+// Process execution via fork()+execvp(). Bridges Carbon strings to C++ via std::string.
 package Process library "core/process";
 import Core library "io";
 import Cpp library "ffi_helper.hpp";
@@ -25,7 +24,7 @@ fn RunCapture(cmd: Cpp.std.string) -> Cpp.std.string {
   return Cpp.process.run_capture(cmd);
 }
 
-// Execute with progress bar, print exit code, return it.
+// Execute with progress bar, print and return exit code.
 fn ExecAndReport(cmd: Cpp.std.string, input: Cpp.std.string) -> i32 {
   let rc: i32 = ExecProgress(cmd, Cpp.strh.make(Constants.FfprobeBin()), input);
   Core.PrintStr("exit code=");
@@ -34,7 +33,7 @@ fn ExecAndReport(cmd: Cpp.std.string, input: Cpp.std.string) -> i32 {
   return rc;
 }
 
-// Execute simple command, print exit code, return it.
+// Execute simple command, print and return exit code.
 fn ExecSimple(cmd: Cpp.std.string) -> i32 {
   let rc: i32 = Exec(cmd);
   Core.PrintStr("exit code=");
